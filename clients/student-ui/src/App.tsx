@@ -185,6 +185,7 @@ export default function App() {
 
     const removeFromCart = (itemId: string) => {
         setCart(prev => prev.filter(c => c.itemId !== itemId));
+        setError('');
     };
 
     const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);

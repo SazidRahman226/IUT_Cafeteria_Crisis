@@ -12,6 +12,11 @@ spec:
     metadata:
       labels:
         app: order-gateway
+      # ADDED: Required for Prometheus to automatically scrape the metrics endpoint
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: order-gateway
@@ -24,15 +29,11 @@ spec:
           env:
             - name: PORT
               value: "8080"
-            - name: DB_HOST
-              value: postgres
-            - name: DB_NAME
-              value: cafeteria_orders
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: db-secret
-                  key: password
+            # CHANGED: Replaced DB connections with Redis, as the Gateway checks the cache first[cite: 32].
+            - name: REDIS_HOST
+              value: redis
+            - name: STOCK_SERVICE_URL
+              value: http://stock-service.cafeteria.svc.cluster.local:8080
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -57,6 +58,7 @@ metadata:
   name: order-gateway
   namespace: cafeteria
 spec:
+  # Leaving as LoadBalancer is perfect since this is the primary entry point for the UI [cite: 20, 44]
   type: LoadBalancer
   selector:
     app: order-gateway

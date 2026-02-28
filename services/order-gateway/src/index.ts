@@ -197,7 +197,7 @@ app.post('/api/orders', authenticateJwt, async (req, res) => {
                 const cachedStock = await redis.get(`stock:${item.itemId}`);
                 if (cachedStock !== null && parseInt(cachedStock) < item.quantity) {
                     res.status(409).json({
-                        error: { code: 'OUT_OF_STOCK', message: `Item ${item.itemId} is out of stock (cached)`, traceId },
+                        error: { code: 'OUT_OF_STOCK', message: `Item ${item.name} is out of stock (cached)`, traceId },
                     });
                     return;
                 }

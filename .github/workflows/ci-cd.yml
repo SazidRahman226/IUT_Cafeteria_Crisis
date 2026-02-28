@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       # Order Gateway Tests
       - name: Install Order Gateway dependencies
@@ -61,7 +61,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Check Identity Provider
         working-directory: services/identity-provider
@@ -82,3 +82,45 @@ jobs:
       - name: Check Notification Hub
         working-directory: services/notification-hub
         run: npm ci && npx tsc --noEmit
+  k8s-integration:
+    name: K8s Manifest Verification (${{ matrix.k8s-version }})
+    runs-on: ubuntu-latest
+    needs: [test, build] # Waits for tests and docker build to succeed
+
+    # ADDED: The Strategy Matrix
+    strategy:
+      fail-fast: false # If one version fails, let the other finish so you can compare
+      matrix:
+        k8s-version:
+          - v1.34.4 # The current Cloud Provider Standard
+          - v1.35.0 # The Bleeding Edge
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. Spin up the 'kind' cluster using the matrix variable
+      - name: Create Kubernetes kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          version: v0.31.0
+          # CHANGED: Dynamically injects the version from the matrix
+          node_image: kindest/node:${{ matrix.k8s-version }}
+          cluster_name: devsprint-cluster
+          wait: 120s
+
+      # 2. Verify the cluster is running
+      - name: Verify Cluster Health
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      # 3. Apply your infrastructure manifests
+      - name: Dry-Run Infrastructure Deployment
+        run: |
+          kubectl apply -f k8s/infrastructure/ --dry-run=client
+
+      # 4. Apply your core microservice manifests
+      - name: Dry-Run Microservices Deployment
+        run: |
+          kubectl apply -f k8s/services/ --dry-run=client

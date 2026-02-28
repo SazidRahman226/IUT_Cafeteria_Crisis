@@ -175,7 +175,7 @@ app.post('/stock/reserve', async (req, res) => {
 
         // Read current stock with version (optimistic locking)
         const current = await client.query(
-            'SELECT available_qty, version FROM inventory WHERE item_id = $1 FOR UPDATE',
+            'SELECT name, available_qty, version FROM inventory WHERE item_id = $1 FOR UPDATE',
             [itemId]
         );
 
@@ -187,12 +187,12 @@ app.post('/stock/reserve', async (req, res) => {
             return;
         }
 
-        const { available_qty, version } = current.rows[0];
+        const { name, available_qty, version } = current.rows[0];
 
         if (available_qty < quantity) {
             await client.query('ROLLBACK');
             res.status(409).json({
-                error: { code: 'OUT_OF_STOCK', message: `Insufficient stock. Available: ${available_qty}`, traceId },
+                error: { code: 'OUT_OF_STOCK', message: `Insufficient ${name}. Available: ${available_qty}`, traceId },
             });
             return;
         }
