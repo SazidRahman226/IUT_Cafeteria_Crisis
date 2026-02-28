@@ -152,6 +152,29 @@ app.get('/api/menu', async (req, res) => {
     }
 });
 
+app.get('/api/orders/revenue', async (req, res) => {
+
+    if(!req.headers.authorization){
+        res.status(401).json({
+            error: { code: 'UNAUTHORIZED', message: 'Missing or invalid bearer token', traceId: (req as any).requestId },
+        });
+        return;
+    }
+
+    try {
+        const result = await pool.query(
+            "SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'FAILED'"
+        );
+        res.json({ totalRevenue: parseFloat(result.rows[0].total_revenue) });
+    } catch (err: any) {
+        log('error', 'Failed to calculate revenue from orders db', { error: err.message });
+        res.status(500).json({
+            error: { code: 'INTERNAL_ERROR', message: 'Failed to calculate revenue', traceId: (req as any)?.requestId || '' },
+        });
+    }
+});
+
+
 // Place order (protected)
 app.post('/api/orders', authenticateJwt, async (req, res) => {
     const traceId = (req as any).requestId;

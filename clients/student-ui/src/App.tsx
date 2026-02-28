@@ -83,6 +83,7 @@ interface MetricsData {
     connectedClients?: number;
     notificationsSent?: number;
     kitchenProcessingTimeMs?: number;
+    totalRevenue?: number;
 }
 
 interface ServiceState {
@@ -865,6 +866,48 @@ function AdminDashboard({ user, token, onLogout }: { user: User; token: string; 
     const totalOrders = services.reduce((s, svc) => s + (svc.metrics?.ordersProcessed || 0), 0);
     const healthyCount = services.filter(s => s.isUp).length;
 
+const getTotalRevenue = async () => {
+    const orderService = services.find(s => s.key === 'order-gateway');
+    
+    // 1. GUARDBLOCK: If service is missing or down, return 0 immediately
+    if (!orderService || !orderService.isUp) {
+        console.warn("Order Gateway is down. Cannot fetch revenue.");
+        return 0; 
+    }
+
+    try {
+        const res = await fetch(`${getServiceUrl(orderService.port)}/api/orders/revenue`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        // 2. HTTP CHECK: Fetch doesn't throw on 404/500 errors, so we must check res.ok
+        if (!res.ok) {
+            console.error(`Revenue fetch failed with status: ${res.status}`);
+            return 0;
+        }
+
+        const data = await res.json();
+        
+        // 3. DATA CHECK: Return the revenue, or 0 if the payload is weird
+        return data.totalRevenue !== undefined ? data.totalRevenue : 0;
+
+    } catch (e) {
+        // 4. NETWORK FALLBACK: Catch DNS errors, CORS issues, or connection refusals
+        console.error("Network error fetching revenue:", e);
+        return 0; 
+    }
+};
+    const [revenue, setRevenue] = useState(0);
+    useEffect(() => {
+        const fetchRevenue = async () => {
+            const rev = await getTotalRevenue();
+            setRevenue(rev);
+        };
+        fetchRevenue();
+        const interval = setInterval(fetchRevenue, 5000);
+        return () => clearInterval(interval);
+    }, [services, token]);
+
     return (
         <div className="min-h-screen p-6">
             {/* Gateway Latency Alert */}
@@ -913,6 +956,7 @@ function AdminDashboard({ user, token, onLogout }: { user: User; token: string; 
                         { label: 'Total Orders', value: totalOrders, icon: '📦', color: 'purple' },
                         { label: 'Total Errors', value: totalErrors, icon: '❌', color: 'red' },
                         { label: 'Healthy', value: `${healthyCount}/5`, icon: '💚', color: 'green' },
+                        { label: 'Total Revenue', value: revenue, icon: '💰', color: 'green' },
                     ].map((stat, i) => (
                         <motion.div
                             key={stat.label}

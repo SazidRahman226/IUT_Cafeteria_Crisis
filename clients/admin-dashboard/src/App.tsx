@@ -257,6 +257,22 @@ export default function App() {
     const totalOrders = services.reduce((s, svc) => s + (svc.metrics?.ordersProcessed || 0), 0);
     const healthyCount = services.filter(s => s.isUp).length;
 
+    const getTotalRevenue = () => {
+        const orderService = services.find(s => s.key === 'order-service');
+        if (orderService && orderService.isUp) {
+            fetch(`${getServiceUrl(orderService.port)}/orders/revenue`, { signal: AbortSignal.timeout(3000) })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.totalRevenue !== undefined) {
+                        setTotalRevenue(data.totalRevenue);
+                    }
+                })
+                .catch(() => { });
+        }
+    };
+
+    console.log(`Total Revenue: ${getTotalRevenue()}`);
+
     return (
         <div className="min-h-screen p-6">
             {/* Gateway Latency Alert */}
@@ -304,7 +320,7 @@ export default function App() {
                         { label: 'Total Orders', value: totalOrders, icon: '📦', color: 'purple' },
                         { label: 'Total Errors', value: totalErrors, icon: '❌', color: 'red' },
                         { label: 'Healthy', value: `${healthyCount}/5`, icon: '💚', color: 'green' },
-                        { label: 'Total Revenue', value: totalRevenue, icon: '💰', color: 'yellow' }
+                        { label: 'Total Revenue', value: getTotalRevenue(), icon: '💰', color: 'yellow' },
                     ].map((stat, i) => (
                         <motion.div
                             key={stat.label}
