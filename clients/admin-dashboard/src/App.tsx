@@ -37,6 +37,7 @@ interface MetricsData {
     connectedClients?: number;
     notificationsSent?: number;
     kitchenProcessingTimeMs?: number;
+    totalRevenue?: number;
 }
 
 interface ServiceState {
@@ -72,6 +73,7 @@ export default function App() {
     const [chaosLog, setChaosLog] = useState<string[]>([]);
     const [killedServices, setKilledServices] = useState<Record<string, { killedAt: number; recovered: boolean }>>({});
     const [chaosTimers, setChaosTimers] = useState<Record<string, number>>({});
+    const [totalRevenue, setTotalRevenue] = useState(0);
 
     // ==========================================
     // Chaos recovery detection + downtime timers
@@ -168,6 +170,20 @@ export default function App() {
         );
 
         setServices(updated);
+
+        // Fetch revenue from stock service
+        try {
+            const stSvc = updated.find(s => s.key === 'stock-service');
+            if (stSvc && stSvc.isUp) {
+                const res = await fetch(`${getServiceUrl(stSvc.port)}/stock/revenue`, { signal: AbortSignal.timeout(3000) });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.totalRevenue !== undefined) {
+                        setTotalRevenue(data.totalRevenue);
+                    }
+                }
+            }
+        } catch { }
 
         // Latency history
         const now = new Date().toLocaleTimeString();
@@ -282,12 +298,13 @@ export default function App() {
 
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Summary Stats */}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-5 gap-4">
                     {[
                         { label: 'Total Requests', value: totalRequests, icon: '📊', color: 'cyan' },
                         { label: 'Total Orders', value: totalOrders, icon: '📦', color: 'purple' },
                         { label: 'Total Errors', value: totalErrors, icon: '❌', color: 'red' },
                         { label: 'Healthy', value: `${healthyCount}/5`, icon: '💚', color: 'green' },
+                        { label: 'Total Revenue', value: totalRevenue, icon: '💰', color: 'yellow' }
                     ].map((stat, i) => (
                         <motion.div
                             key={stat.label}

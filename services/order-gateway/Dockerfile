@@ -1,10 +1,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm i typescript ts-node @types/express @types/jsonwebtoken @types/amqplib @types/pg @types/uuid @types/cors --save-dev && npx tsc
+RUN npm ci --only=production && npm cache clean --force
 
 FROM node:20-alpine
 RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001 -G appgroup

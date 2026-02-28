@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 # ==========================================
 # DevSprint 2026 - IUT Cafeteria Crisis
@@ -20,7 +20,7 @@ services:
       - postgres_auth_data:/var/lib/postgresql/data
       - ./infrastructure/db/init-auth.sql:/docker-entrypoint-initdb.d/01-init.sql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,7 +39,7 @@ services:
       - postgres_inventory_data:/var/lib/postgresql/data
       - ./infrastructure/db/init-inventory.sql:/docker-entrypoint-initdb.d/01-init.sql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,7 +58,7 @@ services:
       - postgres_orders_data:/var/lib/postgresql/data
       - ./infrastructure/db/init-orders.sql:/docker-entrypoint-initdb.d/01-init.sql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -73,7 +73,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -91,7 +91,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -136,7 +136,13 @@ services:
       postgres-auth:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4001/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:4001/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       start_period: 30s
@@ -162,7 +168,13 @@ services:
       postgres-inventory:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4002/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:4002/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       start_period: 30s
@@ -201,7 +213,13 @@ services:
       notification-hub:
         condition: service_started
     healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:8080/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:8080/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       start_period: 40s
@@ -225,7 +243,13 @@ services:
       rabbitmq:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4003/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:4003/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       start_period: 30s
@@ -244,7 +268,13 @@ services:
       PORT: 4005
       JWT_SECRET: devsprint-2026-secret-key
     healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4005/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:4005/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       start_period: 20s

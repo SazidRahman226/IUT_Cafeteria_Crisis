@@ -21,6 +21,18 @@ const pool = new Pool({
     connectionTimeoutMillis: 5000,
 });
 
+// Orders PG pool (for revenue calculation)
+const ordersPool = new Pool({
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: 'cafeteria_orders', // Hardcoded as this service nominally connects to inventory
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+});
+
 // ==========================================
 // Metrics
 // ==========================================
@@ -104,6 +116,21 @@ app.get('/stock', async (req, res) => {
         log('error', 'Failed to fetch stock', { error: err.message });
         res.status(500).json({
             error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch inventory', traceId: (req as any)?.requestId || '' },
+        });
+    }
+});
+
+// Get total revenue from orders database
+app.get('/stock/revenue', async (req, res) => {
+    try {
+        const result = await ordersPool.query(
+            "SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'FAILED'"
+        );
+        res.json({ totalRevenue: parseFloat(result.rows[0].total_revenue) });
+    } catch (err: any) {
+        log('error', 'Failed to calculate revenue from orders db', { error: err.message });
+        res.status(500).json({
+            error: { code: 'INTERNAL_ERROR', message: 'Failed to calculate revenue', traceId: (req as any)?.requestId || '' },
         });
     }
 });
@@ -341,4 +368,4 @@ async function start() {
 
 start().catch(err => { log('error', 'Failed to start', { error: err.message }); process.exit(1); });
 
-export { app, pool };
+export {app, pool };
