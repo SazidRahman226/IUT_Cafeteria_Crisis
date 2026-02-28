@@ -1,0 +1,84 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Order Gateway Tests
+      - name: Install Order Gateway dependencies
+        working-directory: services/order-gateway
+        run: npm ci
+
+      - name: Run Order Gateway tests
+        working-directory: services/order-gateway
+        run: npm test
+
+      # Stock Service Tests
+      - name: Install Stock Service dependencies
+        working-directory: services/stock-service
+        run: npm ci
+
+      - name: Run Stock Service tests
+        working-directory: services/stock-service
+        run: npm test
+
+  build:
+    name: Docker Build Verification
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build all services
+        run: docker compose build
+
+  lint:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Identity Provider
+        working-directory: services/identity-provider
+        run: npm ci && npx tsc --noEmit
+
+      - name: Check Stock Service
+        working-directory: services/stock-service
+        run: npm ci && npx tsc --noEmit
+
+      - name: Check Order Gateway
+        working-directory: services/order-gateway
+        run: npm ci && npx tsc --noEmit
+
+      - name: Check Kitchen Service
+        working-directory: services/kitchen-service
+        run: npm ci && npx tsc --noEmit
+
+      - name: Check Notification Hub
+        working-directory: services/notification-hub
+        run: npm ci && npx tsc --noEmit

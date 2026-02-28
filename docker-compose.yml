@@ -1,37 +1,295 @@
-version: "3.8"
+version: '3.8'
+
+# ==========================================
+# DevSprint 2026 - IUT Cafeteria Crisis
+# docker compose up --build
+# ==========================================
 
 services:
-  identity-provider:
-    build: ./services/identity-provider
-    ports:
-      - "5001:5001"
+  # ========== INFRASTRUCTURE ==========
 
-  order-gateway:
-    build: ./services/order-gateway
+  postgres-auth:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cafeteria_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "5002:5002"
+      - "5432:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+      - ./infrastructure/db/init-auth.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cafeteria-net
+
+  postgres-inventory:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cafeteria_inventory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_inventory_data:/var/lib/postgresql/data
+      - ./infrastructure/db/init-inventory.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cafeteria-net
+
+  postgres-orders:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cafeteria_orders
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_orders_data:/var/lib/postgresql/data
+      - ./infrastructure/db/init-orders.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cafeteria-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cafeteria-net
+
+  rabbitmq:
+    image: rabbitmq:management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - cafeteria-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - cafeteria-net
+    depends_on:
+      - identity-provider
+      - stock-service
+      - order-gateway
+      - kitchen-service
+      - notification-hub
+
+  # ========== MICROSERVICES ==========
+
+  identity-provider:
+    build:
+      context: ./services/identity-provider
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
+      DB_HOST: postgres-auth
+      DB_PORT: 5432
+      DB_NAME: cafeteria_auth
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: devsprint-2026-secret-key
+      JWT_EXPIRY: 24h
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4001/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
 
   stock-service:
-    build: ./services/stock-service
+    build:
+      context: ./services/stock-service
+      dockerfile: Dockerfile
     ports:
-      - "5003:5003"
+      - "4002:4002"
+    environment:
+      PORT: 4002
+      DB_HOST: postgres-inventory
+      DB_PORT: 5432
+      DB_NAME: cafeteria_inventory
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres-inventory:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4002/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
+
+  order-gateway:
+    build:
+      context: ./services/order-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      DB_HOST: postgres-orders
+      DB_PORT: 5432
+      DB_NAME: cafeteria_orders
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      STOCK_SERVICE_URL: http://stock-service:4002
+      NOTIFICATION_HUB_URL: http://notification-hub:4005
+      JWT_SECRET: devsprint-2026-secret-key
+    depends_on:
+      postgres-orders:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      stock-service:
+        condition: service_started
+      notification-hub:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:8080/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      interval: 15s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
 
   kitchen-service:
-    build: ./services/kitchen-service
+    build:
+      context: ./services/kitchen-service
+      dockerfile: Dockerfile
     ports:
-      - "5004:5004"
+      - "4003:4003"
+    environment:
+      PORT: 4003
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      GATEWAY_URL: http://order-gateway:8080
+      NOTIFICATION_HUB_URL: http://notification-hub:4005
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4003/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
 
   notification-hub:
-    build: ./services/notification-hub
+    build:
+      context: ./services/notification-hub
+      dockerfile: Dockerfile
     ports:
-      - "5005:5005"
+      - "4005:4005"
+    environment:
+      PORT: 4005
+      JWT_SECRET: devsprint-2026-secret-key
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:4005/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))" ]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
+
+  # ========== FRONTEND CLIENTS ==========
 
   student-ui:
-    build: ./clients/student-ui
+    build:
+      context: ./clients/student-ui
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3000:80"
+    depends_on:
+      - order-gateway
+      - notification-hub
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
 
   admin-dashboard:
-    build: ./clients/admin-dashboard
+    build:
+      context: ./clients/admin-dashboard
+      dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "3001:80"
+    depends_on:
+      - order-gateway
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
+
+# ========== VOLUMES ==========
+volumes:
+  postgres_auth_data:
+  postgres_inventory_data:
+  postgres_orders_data:
+  redis_data:
+  rabbitmq_data:
+  prometheus_data:
+
+    # ========== NETWORKS ==========
+networks:
+  cafeteria-net:
+    driver: bridge

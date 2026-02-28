@@ -1,18 +1,18 @@
-FROM node:18-alpine
-
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm i typescript ts-node @types/express @types/jsonwebtoken @types/amqplib @types/pg @types/uuid @types/cors --save-dev && npx tsc
 
-# Install dependencies (only production dependencies are needed)
-RUN npm install
-
-# Copy application source
-COPY . .
-
-# Expose the API port
-EXPOSE 5002
-
-# Command to run the application
-CMD ["npm", "start"]
+FROM node:20-alpine
+RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001 -G appgroup
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+USER appuser
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 CMD node -e "require('http').get('http://localhost:8080/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
+CMD ["node", "dist/index.js"]
