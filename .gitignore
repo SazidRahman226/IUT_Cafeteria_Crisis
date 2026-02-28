@@ -1,0 +1,12 @@
+services/order-gateway/node_modules
+services/identity-provider/node_modules
+services/stock-service/node_modules
+services/order-gateway/.env
+services/identity-provider/.env
+services/stock-service/.env
+services/order-gateway/test_order_gateway.js
+services/identity-provider/test_identity_provider.js
+services/stock-service/test_stock_service.js
+services/order-gateway/test_order_gateway.js
+services/identity-provider/test_identity_provider.js
+services/stock-service/test_stock_service.js
