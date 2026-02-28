@@ -39,6 +39,15 @@ spec:
                 secretKeyRef:
                   name: jwt-secret
                   key: secret
+            - name: DB_HOST
+              value: postgres
+            - name: DB_NAME
+              value: cafeteria_orders
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
           livenessProbe:
             httpGet:
               path: /health
