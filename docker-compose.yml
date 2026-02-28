@@ -268,18 +268,6 @@ services:
       - cafeteria-net
     restart: unless-stopped
 
-  admin-dashboard:
-    build:
-      context: ./clients/admin-dashboard
-      dockerfile: Dockerfile
-    ports:
-      - "3001:80"
-    depends_on:
-      - order-gateway
-    networks:
-      - cafeteria-net
-    restart: unless-stopped
-
 # ========== VOLUMES ==========
 volumes:
   postgres_auth_data:

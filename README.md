@@ -12,8 +12,7 @@ docker compose up --build
 
 | Service | URL |
 |---|---|
-| **Student UI** | [http://localhost:3000](http://localhost:3000) |
-| **Admin Dashboard** | [http://localhost:3001](http://localhost:3001) |
+| **Cafeteria Portal** (Student + Admin) | [http://localhost:3000](http://localhost:3000) |
 | Order Gateway API | [http://localhost:8080](http://localhost:8080) |
 | Identity Provider | [http://localhost:4001](http://localhost:4001) |
 | Stock Service | [http://localhost:4002](http://localhost:4002) |
@@ -168,8 +167,8 @@ iut-cafeteria-crisis/
 │   ├── kitchen-service/      # Async order processing via AMQP
 │   └── notification-hub/     # WebSocket real-time updates
 ├── clients/
-│   ├── student-ui/           # React + Vite + Tailwind
-│   └── admin-dashboard/      # React + Recharts + Tailwind
+│   ├── student-ui/           # Unified React app (Student + Admin dashboard)
+│   └── admin-dashboard/      # (Legacy — merged into student-ui)
 ├── shared/                   # Types, middleware, DTOs
 ├── infrastructure/
 │   ├── db/                   # SQL init + seed scripts
