@@ -980,7 +980,6 @@ function AdminDashboard({
                                 {healthyCount}/5
                             </span>
                         </div>
-                        <span className="text-gray-400">Welcome, {user.name}</span>
                         <button
                             onClick={onLogout}
                             className="text-red-400 hover:text-red-300 transition"
