@@ -218,4 +218,4 @@ kubectl apply -f k8s/services/
 
 ---
 
-Built for **DevSprint 2026** by Team IUT 🏆
+Built for **DevSprint 2026** by Team codeKomAiBeshi 🏆
