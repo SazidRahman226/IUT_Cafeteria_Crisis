@@ -33,7 +33,8 @@ docker compose up --build
 
 ## 🏗️ Architecture
 
-<img src="Architecture.png" alt="Architecture" width="700"/>
+<img alt="Architecture Light" src="Architecture-white.png#gh-light-mode-only" width="700">
+<img alt="Architecture Dark" src="Architecture-dark.png#gh-dark-mode-only" width="700">
 
 ---
 
