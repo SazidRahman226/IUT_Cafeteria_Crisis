@@ -90,15 +90,13 @@ app.post("/auth/login", loginLimiter, async (req, res) => {
   const traceId = (req as any).requestId;
 
   if (!studentId || !password) {
-    return res
-      .status(400)
-      .json({
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "studentId and password required",
-          traceId,
-        },
-      });
+    return res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "studentId and password required",
+        traceId,
+      },
+    });
   }
 
   try {
@@ -111,15 +109,13 @@ app.post("/auth/login", loginLimiter, async (req, res) => {
       !rows.length ||
       !(await bcrypt.compare(password, rows[0].password_hash))
     ) {
-      return res
-        .status(401)
-        .json({
-          error: {
-            code: "INVALID_CREDENTIALS",
-            message: "Invalid credentials",
-            traceId,
-          },
-        });
+      return res.status(401).json({
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid credentials",
+          traceId,
+        },
+      });
     }
 
     const user = rows[0];
@@ -142,11 +138,9 @@ app.post("/auth/login", loginLimiter, async (req, res) => {
     });
   } catch (err: any) {
     log("error", "Login error", { error: err.message, traceId });
-    res
-      .status(500)
-      .json({
-        error: { code: "INTERNAL_ERROR", message: "Auth error", traceId },
-      });
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Auth error", traceId },
+    });
   }
 });
 
@@ -155,11 +149,9 @@ app.post("/auth/register", async (req, res) => {
   const traceId = (req as any).requestId;
 
   if (!studentId || !name || !password) {
-    return res
-      .status(400)
-      .json({
-        error: { code: "VALIDATION_ERROR", message: "Missing fields", traceId },
-      });
+    return res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: "Missing fields", traceId },
+    });
   }
 
   try {
@@ -171,21 +163,17 @@ app.post("/auth/register", async (req, res) => {
     res.status(201).json({ message: "User registered", studentId });
   } catch (err: any) {
     if (err.code === "23505")
-      return res
-        .status(409)
-        .json({
-          error: { code: "USER_EXISTS", message: "Student ID exists", traceId },
-        });
-    log("error", "Register error", { error: err.message, traceId });
-    res
-      .status(500)
-      .json({
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Registration failed",
-          traceId,
-        },
+      return res.status(409).json({
+        error: { code: "USER_EXISTS", message: "Student ID exists", traceId },
       });
+    log("error", "Register error", { error: err.message, traceId });
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Registration failed",
+        traceId,
+      },
+    });
   }
 });
 
@@ -194,11 +182,9 @@ app.get("/auth/verify", (req, res) => {
   const traceId = (req as any).requestId;
 
   if (!auth?.startsWith("Bearer ")) {
-    return res
-      .status(401)
-      .json({
-        error: { code: "UNAUTHORIZED", message: "Missing token", traceId },
-      });
+    return res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Missing token", traceId },
+    });
   }
 
   try {
@@ -207,11 +193,9 @@ app.get("/auth/verify", (req, res) => {
       claims: jwt.verify(auth.split(" ")[1], JWT_SECRET),
     });
   } catch {
-    res
-      .status(401)
-      .json({
-        error: { code: "UNAUTHORIZED", message: "Invalid token", traceId },
-      });
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Invalid token", traceId },
+    });
   }
 });
 
@@ -227,15 +211,13 @@ app.get("/health", async (_, res) => {
       dependencies: { postgres: { status: "ok", latency: Date.now() - start } },
     });
   } catch {
-    res
-      .status(503)
-      .json({
-        status: "down",
-        service: "identity-provider",
-        timestamp: new Date().toISOString(),
-        uptime: uptime(),
-        dependencies: { postgres: { status: "down" } },
-      });
+    res.status(503).json({
+      status: "down",
+      service: "identity-provider",
+      timestamp: new Date().toISOString(),
+      uptime: uptime(),
+      dependencies: { postgres: { status: "down" } },
+    });
   }
 });
 

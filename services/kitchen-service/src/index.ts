@@ -69,15 +69,13 @@ app.get("/", (_, res) =>
 );
 
 app.get("/health", (_, res) =>
-  res
-    .status(rabbitConnected ? 200 : 503)
-    .json({
-      status: rabbitConnected ? "ok" : "down",
-      service: "kitchen-service",
-      timestamp: new Date().toISOString(),
-      uptime: uptime(),
-      dependencies: { rabbitmq: { status: rabbitConnected ? "ok" : "down" } },
-    }),
+  res.status(rabbitConnected ? 200 : 503).json({
+    status: rabbitConnected ? "ok" : "down",
+    service: "kitchen-service",
+    timestamp: new Date().toISOString(),
+    uptime: uptime(),
+    dependencies: { rabbitmq: { status: rabbitConnected ? "ok" : "down" } },
+  }),
 );
 
 app.get("/metrics", (_, res) =>
@@ -180,7 +178,8 @@ async function processOrder(
     "Your order is being prepared",
   );
 
-  const cookingTime = 3000 + Math.random() * 4000;
+  // Wait 5 seconds before moving to READY
+  const cookingTime = 5000;
   await new Promise((r) => setTimeout(r, cookingTime));
   totalCookingTimeMs += cookingTime;
 
