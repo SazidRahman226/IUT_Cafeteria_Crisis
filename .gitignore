@@ -3,8 +3,7 @@ services/identity-provider/node_modules
 services/notification-hub/node_modules
 services/order-gateway/node_modules
 services/kitchen-service/node_modules
-clients/admin-dashboard/node_modules
-clients/student-ui/node_modules
+clients/node_modules
 shared/node_modules
 
 dist/
