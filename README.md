@@ -33,8 +33,15 @@ docker compose up --build
 
 ## 🏗️ Architecture
 
-<img alt="Architecture Light" src="Architecture-white.png#gh-light-mode-only" width="700">
-<img alt="Architecture Dark" src="Architecture-dark.png#gh-dark-mode-only" width="700">
+<img alt="Architecture Light" src="./public/Architecture-white.png#gh-light-mode-only" width="700">
+<img alt="Architecture Dark" src="./public/Architecture-dark.png#gh-dark-mode-only" width="700">
+
+--- 
+
+## 🏗️ Project Screenshot
+
+<img alt="Project Screenshot" src="./public/admin-dashboard1.png" width="700">
+<img alt="Project Screenshot" src="./public/admin-dashboard2.png" width="700">
 
 ---
 
@@ -126,19 +133,20 @@ curl -X POST http://localhost:8080/api/orders \
 
 ```
 iut-cafeteria-crisis/
+├── .github/workflows/        # CI/CD pipeline
+├── clients/                  # Unified React app (Student + Admin dashboard)
+├── infrastructure/
+├── k8s/                      # Kubernetes manifests
+├── public/                   # Images and assets
 ├── services/
 │   ├── identity-provider/    # JWT auth, bcrypt, rate limiting
 │   ├── stock-service/        # Inventory with optimistic locking
 │   ├── order-gateway/        # API gateway, Redis cache, RabbitMQ
 │   ├── kitchen-service/      # Async order processing via AMQP
 │   └── notification-hub/     # WebSocket real-time updates
-├── clients/                  # Unified React app (Student + Admin dashboard)
 ├── shared/                   # Types, middleware, DTOs
-├── infrastructure/
 │   ├── db/                   # SQL init + seed scripts
 │   └── prometheus/           # Prometheus config
-├── k8s/                      # Kubernetes manifests
-├── .github/workflows/        # CI/CD pipeline
 └── docker-compose.yml        # Single-command orchestration
 ```
 
@@ -158,6 +166,19 @@ iut-cafeteria-crisis/
 | **Observability** | Prometheus metrics + structured JSON logging + request ID tracing |
 | **Chaos Engineering** | `/chaos/kill` endpoint on every service (admin-only) |
 | **Resilience** | Auto-restart, PENDING_QUEUE retry, connection retry with backoff |
+
+---
+
+## 📊 Visualization & Monitoring
+
+The system prioritizes observability:
+
+- **Real-time Alerts**: The Frontend Dashboard calculates the moving average latency of requests over a 30-second window. If latency spikes (e.g., due to Chaos Engineering triggers), a visual **Red Alert** badge appears instantly.
+- **Status Indicators**: "Traffic Light" indicators show the health status (UP/DOWN) of individual services.
+- **Prometheus Metrics**: Each service exposes `/metrics` (RED method).
+  - `http_request_duration_seconds`: Track latency percentiles.
+  - `process_cpu_seconds`: Resource usage.
+- **Metrics Dashboard**: A dedicated view in the frontend parses raw Prometheus data to show CPU, Memory, Heap, and Uptime in a developer-friendly grid.
 
 ---
 
