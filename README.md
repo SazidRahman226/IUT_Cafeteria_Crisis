@@ -36,12 +36,15 @@ docker compose up --build
 <img alt="Architecture Light" src="./public/Architecture-white.png#gh-light-mode-only" width="700">
 <img alt="Architecture Dark" src="./public/Architecture-dark.png#gh-dark-mode-only" width="700">
 
---- 
+---
 
 ## 🏗️ Project Screenshot
 
+<img alt="Project Screenshot" src="./public/login.png" width="700">
 <img alt="Project Screenshot" src="./public/admin-dashboard1.png" width="700">
 <img alt="Project Screenshot" src="./public/admin-dashboard2.png" width="700">
+<img alt="Project Screenshot" src="./public/student-dashboard1.png" width="700">
+<img alt="Project Screenshot" src="./public/student-dashboard2.png" width="700">
 
 ---
 
@@ -84,7 +87,7 @@ curl http://localhost:8080/metrics
 ```bash
 # Fire 4 rapid login attempts — 4th will be rate-limited
 for i in $(seq 1 4); do
-  echo "--- Attempt $i ---"
+  echo "---Attempt $i ---"
   curl -s -X POST http://localhost:4001/auth/login \
     -H "Content-Type: application/json" \
     -d '{"studentId":"student1","password":"wrong"}'
@@ -149,6 +152,23 @@ iut-cafeteria-crisis/
 │   └── prometheus/           # Prometheus config
 └── docker-compose.yml        # Single-command orchestration
 ```
+
+---
+
+## 🎯 How We Solved the "Cafeteria Crisis"
+
+Team codeKomAiBeshi addressed every challenge in the DevSprint 2026 Problem Statement by completely re-architecting the "Spaghetti Monolith" into a resilient, distributed system:
+
+1. **Shattering the Monolith**: We decoupled the system into five specialized, containerized microservices (`identity-provider`, `order-gateway`, `stock-service`, `kitchen-service`, `notification-hub`), meaning if the Kitchen Service crashes, the Identity Provider stays up.
+2. **Defeating the DB Lock Bottleneck**:
+   - **Optimistic Locking**: The `stock-service` acts as the single source of truth, using version-based optimistic locking to prevent over-selling Biryani without freezing the DB.
+   - **High-Speed Cache**: The `order-gateway` checks Redis first. If an item is out of stock in Redis, it rejects the request instantly, saving the DB from unnecessary load.
+3. **Kitchen Asynchronous Processing**: The `order-gateway` acknowledges orders in milliseconds by pushing them to a **RabbitMQ** `kitchen_orders` queue. The `kitchen-service` processes them asynchronously (simulating 3-7s cook time) and updates the student via the WebSocket `notification-hub`.
+4. **Fault Tolerance & Idempotency**: If a service crashes mid-request, our system is safe. Orders use UUID `Idempotency-Key` headers—preventing double-charging or double-stock reservations during retires. A `PENDING_QUEUE` auto-retry sweeps failed RabbitMQ publishes.
+5. **Observability & Bonus Challenges**:
+   - **Prometheus & Grafana**: We expose standard metrics (`/metrics`) to render real-time latency and order throughput on a custom Grafana dashboard.
+   - **Rate Limiting**: Our `identity-provider` uses Redis to enforce a strict 3 login attempts per minute limit per student.
+   - **Chaos Engineering**: A `/chaos/kill` endpoint lets judges instantly crash any service to verify UI resilience and auto-recovery.
 
 ---
 
