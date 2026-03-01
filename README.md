@@ -4,6 +4,12 @@
 
 ---
 
+## 🌐 Live Demo
+
+The project is deployed and accessible at: **[https://iut-cafeteria-crisis-deployed.vercel.app/](https://iut-cafeteria-crisis-deployed.vercel.app/)**
+
+---
+
 ## 🚀 Quick Start (One Command)
 
 ```bash
