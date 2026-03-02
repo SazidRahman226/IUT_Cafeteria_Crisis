@@ -6,7 +6,7 @@
 ---
 ## 📃 Problem Statement
 
- 🔗 [View the PDF Document](public\DevSprint_2026_Problem_Statement.pdf)
+ 🔗 [View the PDF Document](./public/DevSprint_2026_Problem_Statement.pdf)
 
 ---
 
