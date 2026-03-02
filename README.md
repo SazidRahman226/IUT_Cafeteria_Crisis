@@ -4,6 +4,11 @@
 > **Production-grade microservices system** for campus cafeteria management with real-time order tracking, chaos engineering, and full observability.
 
 ---
+## 📃 Problem Statement
+
+ 🔗 [View the PDF Document](public\DevSprint_2026_Problem_Statement.pdf)
+
+---
 
 ## 🌐 Live Demo
 
