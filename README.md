@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD033 -->
 # 🍽️ IUT Cafeteria Crisis — DevSprint 2026
 
 > **Production-grade microservices system** for campus cafeteria management with real-time order tracking, chaos engineering, and full observability.
@@ -38,19 +39,20 @@ docker compose up --build
 ---
 
 ## 🏗️ Architecture
+<!-- markdownlint-disable MD033 -->
 
-<img alt="Architecture Light" src="./public/Architecture-white.png#gh-light-mode-only" width="700">
-<img alt="Architecture Dark" src="./public/Architecture-dark.png#gh-dark-mode-only" width="700">
+<img alt="Architecture Light" src="./public/Architecture-white.png#gh-light-mode-only" width="700"> <br>
+<img alt="Architecture Dark" src="./public/Architecture-dark.png#gh-dark-mode-only" width="700"> <br>
 
 ---
 
 ## 🏗️ Project Screenshot
 
-<img alt="Project Screenshot" src="./public/login.png" width="700">
-<img alt="Project Screenshot" src="./public/admin-dashboard1.png" width="700">
-<img alt="Project Screenshot" src="./public/admin-dashboard2.png" width="700">
-<img alt="Project Screenshot" src="./public/student-dashboard1.png" width="700">
-<img alt="Project Screenshot" src="./public/student-dashboard2.png" width="700">
+<img alt="Project Screenshot" src="./public/login.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/admin-dashboard1.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/admin-dashboard2.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/student-dashboard1.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/student-dashboard2.png" width="700"><br>
 
 ---
 
