@@ -559,6 +559,7 @@ function AdminDashboard({ user, token, onLogout }: { user: User; token: string; 
   const [killedServices, setKilledServices] = useState<Record<string, { killedAt: number; recovered: boolean }>>({});
   const [chaosTimers, setChaosTimers] = useState<Record<string, number>>({});
   const [revenue, setRevenue] = useState(0);
+  const [ordersProcessed, setOrdersProcessed] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -597,11 +598,20 @@ function AdminDashboard({ user, token, onLogout }: { user: User; token: string; 
     setGatewayAlert((gw?.metrics?.recentAvgLatencyMs || gw?.metrics?.avgLatencyMs || 0) > 1000);
   }, []);
 
-  const fetchRevenueSafe = useCallback(async () => {
-    try { const gw = SERVICES.find((s) => s.key === "order-gateway"); if (!gw) return; const res = await fetch(`${getServiceUrl(gw.port)}/api/orders/revenue`, { headers: { Authorization: `Bearer ${token}` } }); if (res.ok) setRevenue((await res.json()).totalRevenue || 0); } catch { }
+  const fetchStatsSafe = useCallback(async () => {
+    try { 
+      const gw = SERVICES.find((s) => s.key === "order-gateway"); 
+      if (!gw) return; 
+      const [revRes, countRes] = await Promise.all([
+        fetch(`${getServiceUrl(gw.port)}/api/orders/revenue`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getServiceUrl(gw.port)}/api/orders/orderCount`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      if (revRes.ok) setRevenue((await revRes.json()).totalRevenue || 0); 
+      if (countRes.ok) setOrdersProcessed((await countRes.json()).count || 0);
+    } catch { }
   }, [token]);
 
-  useEffect(() => { pollServices(); fetchRevenueSafe(); const i = setInterval(() => { pollServices(); fetchRevenueSafe(); }, 5000); return () => clearInterval(i); }, [pollServices, fetchRevenueSafe]);
+  useEffect(() => { pollServices(); fetchStatsSafe(); const i = setInterval(() => { pollServices(); fetchStatsSafe(); }, 5000); return () => clearInterval(i); }, [pollServices, fetchStatsSafe]);
 
   const killService = async (svc: ServiceState) => {
     try {
@@ -614,12 +624,11 @@ function AdminDashboard({ user, token, onLogout }: { user: User; token: string; 
 
   const healthyCount = services.filter((s) => s.isUp).length;
   const totalRequests = services.reduce((s, svc) => s + (svc.metrics?.requestCount || 0), 0);
-  const totalOrders = services.reduce((s, svc) => s + (svc.metrics?.ordersProcessed || 0), 0);
   const totalErrors = services.reduce((s, svc) => s + (svc.metrics?.errorCount || 0), 0);
 
   const statCards = [
     { label: "Total Requests", value: totalRequests, icon: "📊", borderColor: "border-cyan-500/40", bgColor: "bg-cyan-500/5", glowColor: "shadow-cyan-500/10" },
-    { label: "Total Orders", value: totalOrders, icon: "📦", borderColor: "border-purple-500/40", bgColor: "bg-purple-500/5", glowColor: "shadow-purple-500/10" },
+    { label: "Total Orders", value: ordersProcessed, icon: "📦", borderColor: "border-purple-500/40", bgColor: "bg-purple-500/5", glowColor: "shadow-purple-500/10" },
     { label: "Total Errors", value: totalErrors, icon: "❌", borderColor: "border-red-500/40", bgColor: "bg-red-500/5", glowColor: "shadow-red-500/10" },
     { label: "Services Up", value: `${healthyCount}/5`, icon: "💚", borderColor: "border-green-500/40", bgColor: "bg-green-500/5", glowColor: "shadow-green-500/10" },
     { label: "Total Revenue", value: `৳${revenue}`, icon: "💰", borderColor: "border-yellow-500/40", bgColor: "bg-yellow-500/5", glowColor: "shadow-yellow-500/10" },

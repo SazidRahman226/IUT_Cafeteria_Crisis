@@ -97,29 +97,25 @@ function authenticateJwt(
 ) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer "))
-    return res
-      .status(401)
-      .json({
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Missing token",
-          traceId: (req as any).requestId,
-        },
-      });
+    return res.status(401).json({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Missing token",
+        traceId: (req as any).requestId,
+      },
+    });
 
   try {
     (req as any).user = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
     next();
   } catch {
-    res
-      .status(401)
-      .json({
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Invalid token",
-          traceId: (req as any).requestId,
-        },
-      });
+    res.status(401).json({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Invalid token",
+        traceId: (req as any).requestId,
+      },
+    });
   }
 }
 
@@ -129,15 +125,13 @@ function requireAdmin(
   next: express.NextFunction,
 ) {
   if ((req as any).user?.role !== "admin")
-    return res
-      .status(403)
-      .json({
-        error: {
-          code: "FORBIDDEN",
-          message: "Admin access required",
-          traceId: (req as any).requestId,
-        },
-      });
+    return res.status(403).json({
+      error: {
+        code: "FORBIDDEN",
+        message: "Admin access required",
+        traceId: (req as any).requestId,
+      },
+    });
   next();
 }
 
@@ -154,29 +148,18 @@ app.get("/api/menu", async (req, res) => {
     );
   } catch (err: any) {
     log("error", "Failed to fetch menu", { error: err.message, traceId });
-    res
-      .status(502)
-      .json({
-        error: {
-          code: "SERVICE_UNAVAILABLE",
-          message: "Unable to fetch menu",
-          traceId,
-        },
-      });
+    res.status(502).json({
+      error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Unable to fetch menu",
+        traceId,
+      },
+    });
   }
 });
 
 app.get("/api/orders/revenue", async (req, res) => {
-  if (!req.headers.authorization)
-    return res
-      .status(401)
-      .json({
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Missing token",
-          traceId: (req as any).requestId,
-        },
-      });
+  const traceId = (req as any).requestId;
   try {
     const { rows } = await pool.query(
       "SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'FAILED'",
@@ -184,15 +167,30 @@ app.get("/api/orders/revenue", async (req, res) => {
     res.json({ totalRevenue: parseFloat(rows[0].total_revenue) });
   } catch (err: any) {
     log("error", "Revenue fetch failed", { error: err.message });
-    res
-      .status(500)
-      .json({
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Calculation failed",
-          traceId: (req as any)?.requestId || "",
-        },
-      });
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Calculation failed",
+        traceId: (req as any)?.requestId || "",
+      },
+    });
+  }
+});
+
+app.get("/api/orders/orderCount", async (req, res) => {
+  const traceId = (req as any).requestId;
+  try {
+    const { rows } = await pool.query("SELECT COUNT(*) as count FROM orders");
+    res.json({ count: parseInt(rows[0].count, 10) });
+  } catch (err: any) {
+    log("error", "Order count fetch failed", { error: err.message });
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Calculation failed",
+        traceId: (req as any)?.requestId || "",
+      },
+    });
   }
 });
 
@@ -203,21 +201,17 @@ app.post("/api/orders", authenticateJwt, async (req, res) => {
   const idempotencyKey = (req.headers["idempotency-key"] as string) || uuidv4();
 
   if (!items?.length)
-    return res
-      .status(400)
-      .json({
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "items array is required",
-          traceId,
-        },
-      });
+    return res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "items array is required",
+        traceId,
+      },
+    });
   if (items.some((i: any) => !i.itemId || !i.quantity || i.quantity <= 0))
-    return res
-      .status(400)
-      .json({
-        error: { code: "VALIDATION_ERROR", message: "Invalid items", traceId },
-      });
+    return res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: "Invalid items", traceId },
+    });
 
   try {
     const cached = await redis.get(`idempotency:${idempotencyKey}`);
@@ -236,15 +230,13 @@ app.post("/api/orders", authenticateJwt, async (req, res) => {
       try {
         const stock = await redis.get(`stock:${item.itemId}`);
         if (stock !== null && parseInt(stock) < item.quantity) {
-          return res
-            .status(409)
-            .json({
-              error: {
-                code: "OUT_OF_STOCK",
-                message: `${item.name} out of stock (cached)`,
-                traceId,
-              },
-            });
+          return res.status(409).json({
+            error: {
+              code: "OUT_OF_STOCK",
+              message: `${item.name} out of stock (cached)`,
+              traceId,
+            },
+          });
         }
       } catch {}
     }
@@ -373,25 +365,21 @@ app.post("/api/orders", authenticateJwt, async (req, res) => {
     res.status(201).json(response);
   } catch (err: any) {
     if (err.response?.status === 409)
-      return res
-        .status(409)
-        .json({
-          error: {
-            code: "OUT_OF_STOCK",
-            message: err.response.data?.error?.message || "Out of stock",
-            traceId,
-          },
-        });
-    log("error", "Order failed", { error: err.message, traceId });
-    res
-      .status(500)
-      .json({
+      return res.status(409).json({
         error: {
-          code: "ORDER_FAILED",
-          message: "Failed to place order",
+          code: "OUT_OF_STOCK",
+          message: err.response.data?.error?.message || "Out of stock",
           traceId,
         },
       });
+    log("error", "Order failed", { error: err.message, traceId });
+    res.status(500).json({
+      error: {
+        code: "ORDER_FAILED",
+        message: "Failed to place order",
+        traceId,
+      },
+    });
   }
 });
 
@@ -404,19 +392,15 @@ app.get("/api/orders/:orderId", authenticateJwt, async (req, res) => {
       [req.params.orderId],
     );
     if (!rows.length)
-      return res
-        .status(404)
-        .json({
-          error: { code: "NOT_FOUND", message: "Order not found", traceId },
-        });
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Order not found", traceId },
+      });
 
     const order = rows[0];
     if (user.role !== "admin" && order.student_id !== user.sub)
-      return res
-        .status(403)
-        .json({
-          error: { code: "FORBIDDEN", message: "Access denied", traceId },
-        });
+      return res.status(403).json({
+        error: { code: "FORBIDDEN", message: "Access denied", traceId },
+      });
 
     res.json({
       orderId: order.order_id,
@@ -429,11 +413,9 @@ app.get("/api/orders/:orderId", authenticateJwt, async (req, res) => {
     });
   } catch (err: any) {
     log("error", "Get order failed", { error: err.message, traceId });
-    res
-      .status(500)
-      .json({
-        error: { code: "INTERNAL_ERROR", message: "Fetch failed", traceId },
-      });
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Fetch failed", traceId },
+    });
   }
 });
 
@@ -460,11 +442,9 @@ app.get("/api/orders", authenticateJwt, async (req, res) => {
     );
   } catch (err: any) {
     log("error", "List orders failed", { error: err.message, traceId });
-    res
-      .status(500)
-      .json({
-        error: { code: "INTERNAL_ERROR", message: "List failed", traceId },
-      });
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "List failed", traceId },
+    });
   }
 });
 
@@ -485,15 +465,13 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
   }
 
   if (!authorized)
-    return res
-      .status(401)
-      .json({
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Admin access required",
-          traceId,
-        },
-      });
+    return res.status(401).json({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Admin access required",
+        traceId,
+      },
+    });
 
   const validStatuses = [
     "PENDING",
@@ -504,11 +482,9 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
     "PENDING_QUEUE",
   ];
   if (!validStatuses.includes(status))
-    return res
-      .status(400)
-      .json({
-        error: { code: "VALIDATION_ERROR", message: `Invalid status`, traceId },
-      });
+    return res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: `Invalid status`, traceId },
+    });
 
   try {
     await pool.query("UPDATE orders SET status = $1 WHERE order_id = $2", [
@@ -518,11 +494,9 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
     res.json({ orderId: req.params.orderId, status });
   } catch (err: any) {
     log("error", "Status update failed", { error: err.message, traceId });
-    res
-      .status(500)
-      .json({
-        error: { code: "INTERNAL_ERROR", message: "Update failed", traceId },
-      });
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Update failed", traceId },
+    });
   }
 });
 
@@ -546,15 +520,13 @@ app.get("/health", async (_, res) => {
   }
 
   const allOk = Object.values(deps).every((d: any) => d.status === "ok");
-  res
-    .status(allOk ? 200 : 503)
-    .json({
-      status: allOk ? "ok" : "degraded",
-      service: "order-gateway",
-      timestamp: new Date().toISOString(),
-      uptime: Math.floor((Date.now() - startTime) / 1000),
-      dependencies: deps,
-    });
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? "ok" : "degraded",
+    service: "order-gateway",
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    dependencies: deps,
+  });
 });
 
 app.get("/metrics", (_, res) =>

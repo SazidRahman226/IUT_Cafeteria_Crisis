@@ -16,7 +16,7 @@ The project is deployed and accessible at: **[https://iut-cafeteria-crisis-deplo
 ```bash
 docker compose up --build
 ```
-
+<!-- markdownlint-disable MD060 -->
 | Service | URL |
 |---|---|
 | **Cafeteria Portal** (Student + Admin) | [http://localhost:3000](http://localhost:3000) |
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8080/api/orders \
 ---
 
 ## 📁 Repository Structure
-
+<!-- markdownlint-disable MD040 -->
 ```
 iut-cafeteria-crisis/
 ├── .github/workflows/        # CI/CD pipeline
