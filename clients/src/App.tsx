@@ -107,7 +107,6 @@ function LoginScreen({ onLogin, loading, error }: { onLogin: (id: string, pw: st
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="text-center mb-8">
           <motion.div animate={{ rotate: [0, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="text-6xl mb-4 inline-block">🍽️</motion.div>
           <h1 className="text-4xl font-extrabold gradient-text tracking-tight">IUT Cafeteria</h1>
-          <p className="text-gray-400 mt-2 text-sm tracking-wide">DevSprint 2026 — Campus Cafeteria Management</p>
         </motion.div>
 
         <motion.form initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
