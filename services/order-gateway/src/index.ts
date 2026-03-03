@@ -158,41 +158,51 @@ app.get("/api/menu", async (req, res) => {
   }
 });
 
-app.get("/api/orders/revenue", async (req, res) => {
-  const traceId = (req as any).requestId;
-  try {
-    const { rows } = await pool.query(
-      "SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'FAILED'",
-    );
-    res.json({ totalRevenue: parseFloat(rows[0].total_revenue) });
-  } catch (err: any) {
-    log("error", "Revenue fetch failed", { error: err.message });
-    res.status(500).json({
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "Calculation failed",
-        traceId: (req as any)?.requestId || "",
-      },
-    });
-  }
-});
+app.get(
+  "/api/orders/revenue",
+  authenticateJwt,
+  requireAdmin,
+  async (req, res) => {
+    const traceId = (req as any).requestId;
+    try {
+      const { rows } = await pool.query(
+        "SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'FAILED'",
+      );
+      res.json({ totalRevenue: parseFloat(rows[0].total_revenue) });
+    } catch (err: any) {
+      log("error", "Revenue fetch failed", { error: err.message });
+      res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Calculation failed",
+          traceId: (req as any)?.requestId || "",
+        },
+      });
+    }
+  },
+);
 
-app.get("/api/orders/orderCount", async (req, res) => {
-  const traceId = (req as any).requestId;
-  try {
-    const { rows } = await pool.query("SELECT COUNT(*) as count FROM orders");
-    res.json({ count: parseInt(rows[0].count, 10) });
-  } catch (err: any) {
-    log("error", "Order count fetch failed", { error: err.message });
-    res.status(500).json({
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "Calculation failed",
-        traceId: (req as any)?.requestId || "",
-      },
-    });
-  }
-});
+app.get(
+  "/api/orders/orderCount",
+  authenticateJwt,
+  requireAdmin,
+  async (req, res) => {
+    const traceId = (req as any).requestId;
+    try {
+      const { rows } = await pool.query("SELECT COUNT(*) as count FROM orders");
+      res.json({ count: parseInt(rows[0].count, 10) });
+    } catch (err: any) {
+      log("error", "Order count fetch failed", { error: err.message });
+      res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Calculation failed",
+          traceId: (req as any)?.requestId || "",
+        },
+      });
+    }
+  },
+);
 
 app.post("/api/orders", authenticateJwt, async (req, res) => {
   const traceId = (req as any).requestId;
