@@ -4,31 +4,26 @@ global:
 
 scrape_configs:
   - job_name: "identity-provider"
-    scheme: https
     static_configs:
-      - targets: ["iut-cafeteria-crisis-deployed.onrender.com"]
+      - targets: ["identity-provider:4001"]
     metrics_path: "/metrics"
 
   - job_name: "stock-service"
-    scheme: https
     static_configs:
-      - targets: ["stock-service-xril.onrender.com"]
+      - targets: ["stock-service:4002"]
     metrics_path: "/metrics"
 
   - job_name: "order-gateway"
-    scheme: https
     static_configs:
-      - targets: ["order-gateway.onrender.com"]
+      - targets: ["order-gateway:8080"]
     metrics_path: "/metrics"
 
   - job_name: "kitchen-service"
-    scheme: https
     static_configs:
-      - targets: ["kitchen-service-ux9y.onrender.com"]
+      - targets: ["kitchen-service:4003"]
     metrics_path: "/metrics"
 
   - job_name: "notification-hub"
-    scheme: https
     static_configs:
-      - targets: ["notification-hub-eeob.onrender.com"]
+      - targets: ["notification-hub:4005"]
     metrics_path: "/metrics"
