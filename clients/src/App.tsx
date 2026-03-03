@@ -27,20 +27,19 @@ const AUTH_URL = import.meta.env.VITE_AUTH_URL || `http://${BASE_HOST}:4001`;
 const WS_URL = import.meta.env.VITE_WS_URL || `ws://${BASE_HOST}:4005/ws`;
 
 const SERVICES = [
-  { name: "Identity Provider", key: "identity-provider", port: 4001, color: "#38bdf8", envVar: "VITE_IDENTITY_URL" },
-  { name: "Order Gateway", key: "order-gateway", port: 8080, color: "#a78bfa", envVar: "VITE_GATEWAY_URL" },
-  { name: "Stock Service", key: "stock-service", port: 4002, color: "#34d399", envVar: "VITE_STOCK_URL" },
-  { name: "Kitchen Service", key: "kitchen-service", port: 4003, color: "#fb923c", envVar: "VITE_KITCHEN_URL" },
-  { name: "Notification Hub", key: "notification-hub", port: 4005, color: "#f472b6", envVar: "VITE_NOTIFICATION_URL" },
+  { name: "Identity Provider", key: "identity-provider", port: 4001, url: import.meta.env.VITE_IDENTITY_API_URL, color: "#38bdf8" },
+  { name: "Order Gateway", key: "order-gateway", port: 8080, url: import.meta.env.VITE_ORDER_API_URL, color: "#a78bfa" },
+  { name: "Stock Service", key: "stock-service", port: 4002, url: import.meta.env.VITE_STOCK_API_URL, color: "#34d399" },
+  { name: "Kitchen Service", key: "kitchen-service", port: 4003, url: import.meta.env.VITE_KITCHEN_API_URL, color: "#fb923c" },
+  { name: "Notification Hub", key: "notification-hub", port: 4005, url: import.meta.env.VITE_NOTIFICATION_API_URL, color: "#f472b6" },
 ];
 
-function getServiceUrl(port: number) { 
-  const service = SERVICES.find(s => s.port === port);
-  if (service && import.meta.env[service.envVar]) {
-    return import.meta.env[service.envVar];
-  }
-  return `${window.location.protocol}//${BASE_HOST}:${port}`; 
+function getServiceUrl(port: number) {
+  const svc = SERVICES.find((s) => s.port === port);
+  if (svc && svc.url) return svc.url;
+  return `http://${BASE_HOST}:${port}`;
 }
+
 function formatUptime(s: number): string { if (s < 60) return `${s}s`; if (s < 3600) return `${Math.floor(s / 60)}m`; return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`; }
 function parsePrometheusMetrics(text: string, service: string): MetricsData {
   const gv = (n: string) => { const m = text.match(new RegExp(`${n}\\{[^}]*\\}\\s+(\\d+\\.?\\d*)`)); return m ? parseFloat(m[1]) : 0; };
