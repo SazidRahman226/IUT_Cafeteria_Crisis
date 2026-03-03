@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -267,17 +273,17 @@ function LoginScreen({
         <motion.div
           animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
           transition={{ duration: 20, repeat: Infinity }}
-          className="absolute top-20 left-20 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl"
+          className="absolute top-20 left-20 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl will-change-transform"
         />
         <motion.div
           animate={{ x: [0, -80, 0], y: [0, 60, 0] }}
           transition={{ duration: 25, repeat: Infinity }}
-          className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-600/15 rounded-full blur-3xl"
+          className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-600/15 rounded-full blur-3xl will-change-transform"
         />
         <motion.div
           animate={{ x: [0, 50, 0], y: [0, -80, 0] }}
           transition={{ duration: 18, repeat: Infinity }}
-          className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-600/10 rounded-full blur-3xl"
+          className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-600/10 rounded-full blur-3xl will-change-transform"
         />
       </div>
 
@@ -515,28 +521,37 @@ function StudentDashboard({
     if (screen === "orders") fetchOrders();
   }, [screen, fetchOrders]);
 
-  const addToCart = (item: MenuItem) =>
-    setCart((prev) =>
-      prev.find((c) => c.itemId === item.itemId)
-        ? prev.map((c) =>
-            c.itemId === item.itemId ? { ...c, quantity: c.quantity + 1 } : c,
+  const addToCart = useCallback(
+    (item: MenuItem) =>
+      setCart((prev) =>
+        prev.find((c) => c.itemId === item.itemId)
+          ? prev.map((c) =>
+              c.itemId === item.itemId ? { ...c, quantity: c.quantity + 1 } : c,
+            )
+          : [...prev, { ...item, quantity: 1 }],
+      ),
+    [],
+  );
+
+  const updateCartQty = useCallback(
+    (itemId: string, delta: number) =>
+      setCart((prev) =>
+        prev
+          .map((c) =>
+            c.itemId === itemId
+              ? { ...c, quantity: Math.max(0, c.quantity + delta) }
+              : c,
           )
-        : [...prev, { ...item, quantity: 1 }],
-    );
-  const updateCartQty = (itemId: string, delta: number) =>
-    setCart((prev) =>
-      prev
-        .map((c) =>
-          c.itemId === itemId
-            ? { ...c, quantity: Math.max(0, c.quantity + delta) }
-            : c,
-        )
-        .filter((c) => c.quantity > 0),
-    );
-  const removeFromCart = (id: string) => {
+          .filter((c) => c.quantity > 0),
+      ),
+    [],
+  );
+
+  const removeFromCart = useCallback((id: string) => {
     setCart((prev) => prev.filter((c) => c.itemId !== id));
     setError("");
-  };
+  }, []);
+
   const cartTotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
@@ -644,9 +659,9 @@ function StudentDashboard({
 }
 
 // ==========================================
-// MENU SCREEN — Category tabs, search, card grid
+// MENU SCREEN — Memoized for Performance
 // ==========================================
-function MenuScreen({
+const MenuScreen = React.memo(function MenuScreen({
   user,
   menu,
   cart,
@@ -672,11 +687,11 @@ function MenuScreen({
   const filteredMenu = useMemo(() => {
     let items = menu as MenuItem[];
     if (activeCategory !== "All")
-      items = items.filter((m) => m.category === activeCategory);
+      items = items.filter((m: MenuItem) => m.category === activeCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       items = items.filter(
-        (m) =>
+        (m: MenuItem) =>
           m.name.toLowerCase().includes(q) ||
           m.description.toLowerCase().includes(q),
       );
@@ -985,12 +1000,17 @@ function MenuScreen({
       </div>
     </motion.div>
   );
-}
+});
 
 // ==========================================
-// ORDERS SCREEN
+// ORDERS SCREEN — Memoized for Performance
 // ==========================================
-function OrdersScreen({ orders, onGoMenu, onLogout, onRefresh }: any) {
+const OrdersScreen = React.memo(function OrdersScreen({
+  orders,
+  onGoMenu,
+  onLogout,
+  onRefresh,
+}: any) {
   const statusSteps = ["PENDING", "STOCK_VERIFIED", "IN_KITCHEN", "READY"];
   const statusLabels: Record<string, string> = {
     PENDING: "⏳ Pending",
@@ -1165,6 +1185,26 @@ function OrdersScreen({ orders, onGoMenu, onLogout, onRefresh }: any) {
       </div>
     </motion.div>
   );
+});
+
+// ==========================================
+// Isolated Chaos Timer Component (Prevents Re-renders)
+// ==========================================
+function ChaosTimerDisplay({ killedAt }: { killedAt: number }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const int = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - killedAt) / 1000));
+    }, 500);
+    return () => clearInterval(int);
+  }, [killedAt]);
+
+  return (
+    <span className="text-red-300 text-xl font-mono font-bold mt-1">
+      {elapsed}s
+    </span>
+  );
 }
 
 // ==========================================
@@ -1197,23 +1237,8 @@ function AdminDashboard({
   const [killedServices, setKilledServices] = useState<
     Record<string, { killedAt: number; recovered: boolean }>
   >({});
-  const [chaosTimers, setChaosTimers] = useState<Record<string, number>>({});
   const [revenue, setRevenue] = useState(0);
   const [ordersProcessed, setOrdersProcessed] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setChaosTimers(() => {
-        const t: Record<string, number> = {};
-        for (const [key, info] of Object.entries(killedServices)) {
-          if (!info.recovered)
-            t[key] = Math.floor((Date.now() - info.killedAt) / 1000);
-        }
-        return t;
-      });
-    }, 500);
-    return () => clearInterval(interval);
-  }, [killedServices]);
 
   useEffect(() => {
     for (const svc of services) {
@@ -1536,9 +1561,10 @@ function AdminDashboard({
                         <span className="text-red-400 text-xs font-bold uppercase tracking-wider">
                           Service Killed
                         </span>
-                        <span className="text-red-300 text-xl font-mono font-bold mt-1">
-                          {chaosTimers[svc.key] || 0}s
-                        </span>
+
+                        {/* The new isolated ChaosTimerDisplay */}
+                        <ChaosTimerDisplay killedAt={chaosInfo.killedAt} />
+
                         <div className="mt-2 flex gap-1">
                           {[0, 200, 400].map((d) => (
                             <span
