@@ -8,12 +8,14 @@ export enum OrderStatus {
   STOCK_VERIFIED = 'STOCK_VERIFIED',
   IN_KITCHEN = 'IN_KITCHEN',
   READY = 'READY',
+  DELIVERED = 'DELIVERED',
   FAILED = 'FAILED',
 }
 
 export enum UserRole {
   STUDENT = 'student',
   ADMIN = 'admin',
+  STAFF = 'staff',
 }
 
 // JWT Claims
@@ -49,6 +51,8 @@ export interface MenuItem {
   category: string;
   imageUrl: string;
   availableQty: number;
+  isEnabled: boolean;
+  disabledReason?: string;
 }
 
 export interface StockReserveRequest {
@@ -99,6 +103,24 @@ export interface KitchenMessage {
   studentId: string;
   items: OrderItem[];
   timestamp: string;
+}
+
+// Order Delivery (OTP)
+export interface OrderDelivery {
+  orderId: string;
+  otpCode: string;
+  otpExpiresAt: string;
+  isUsed: boolean;
+  deliveredAt?: string;
+}
+
+// Revenue
+export interface RevenueRecord {
+  id: string;
+  orderId: string;
+  studentId: string;
+  amount: number;
+  createdAt: string;
 }
 
 // Error Format (Standardized)

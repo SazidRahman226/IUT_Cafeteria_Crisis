@@ -3,6 +3,8 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import amqplib from "amqplib";
 import axios from "axios";
+import { Pool } from "pg";
+import crypto from "crypto";
 
 const PORT = parseInt(process.env.PORT || "4003");
 const RABBITMQ_URL =
@@ -14,6 +16,18 @@ const JWT_SECRET = process.env.JWT_SECRET || "devsprint-2026-secret-key";
 const INTERNAL_SECRET =
   process.env.INTERNAL_SECRET || "devsprint-internal-2026";
 const QUEUE_NAME = "kitchen_orders";
+
+// Database connection for OTP generation
+const pool = new Pool({
+  host: process.env.DB_HOST || "postgres-orders",
+  port: parseInt(process.env.DB_PORT || "5432"),
+  database: process.env.DB_NAME || "cafeteria_orders",
+  user: process.env.DB_USER || "postgres",
+  password: process.env.DB_PASSWORD || "postgres",
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
 
 let requestCount = 0,
   errorCount = 0,
@@ -171,6 +185,7 @@ async function processOrder(
   channel.ack(msg);
   log("info", "Order received in kitchen", { orderId, studentId });
 
+  // Set order to IN_KITCHEN — staff will manually mark it as READY
   await notifyAndUpdate(
     orderId,
     studentId,
@@ -178,25 +193,13 @@ async function processOrder(
     "Your order is being prepared",
   );
 
-  // Wait 5 seconds before moving to READY
-  const cookingTime = 5000;
-  await new Promise((r) => setTimeout(r, cookingTime));
-  totalCookingTimeMs += cookingTime;
-
   processedOrderIds.add(orderId);
   if (processedOrderIds.size > 10000)
     processedOrderIds = new Set(Array.from(processedOrderIds).slice(-5000));
   ordersProcessed++;
 
-  await notifyAndUpdate(
+  log("info", "Order moved to IN_KITCHEN, awaiting staff approval", {
     orderId,
-    studentId,
-    "READY",
-    "Your order is ready for pickup!",
-  );
-  log("info", "Order completed", {
-    orderId,
-    cookingTimeMs: Math.round(cookingTime),
   });
 }
 
@@ -239,6 +242,30 @@ async function connectRabbitMQ() {
 }
 
 (async () => {
+  // Connect to orders database
+  for (let i = 30; i > 0; i--) {
+    try {
+      await pool.query("SELECT 1");
+      log("info", "Orders DB connected");
+      // Ensure order_delivery table exists
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS order_delivery (
+            order_id VARCHAR(100) PRIMARY KEY,
+            otp_code TEXT NOT NULL,
+            otp_expires_at TIMESTAMPTZ NOT NULL,
+            is_used BOOLEAN DEFAULT FALSE,
+            delivered_at TIMESTAMPTZ
+          )
+        `);
+      } catch {}
+      break;
+    } catch {
+      log("warn", `Waiting for orders DB... (${i - 1} retries left)`);
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+
   await connectRabbitMQ();
   app.listen(PORT, "0.0.0.0", () =>
     log("info", `Kitchen Service running on port ${PORT}`),

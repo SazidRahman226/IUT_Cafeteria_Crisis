@@ -54,10 +54,14 @@ docker compose up --build
 ## 🏗️ Project Screenshot
 
 <img alt="Project Screenshot" src="./public/login.png" width="700"><br>
-<img alt="Project Screenshot" src="./public/admin-dashboard1.png" width="700"><br>
-<img alt="Project Screenshot" src="./public/admin-dashboard2.png" width="700"><br>
 <img alt="Project Screenshot" src="./public/student-dashboard1.png" width="700"><br>
 <img alt="Project Screenshot" src="./public/student-dashboard2.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/staff-dashboard1.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/staff-dashboard2.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/staff-dashboard3.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/staff-dashboard4.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/admin-dashboard1.png" width="700"><br>
+<img alt="Project Screenshot" src="./public/admin-dashboard2.png" width="700"><br>
 
 ---
 

@@ -164,8 +164,12 @@ services:
       DB_NAME: cafeteria_inventory
       DB_USER: postgres
       DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: devsprint-2026-secret-key
     depends_on:
       postgres-inventory:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test:
@@ -239,8 +243,15 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       GATEWAY_URL: http://order-gateway:8080
       NOTIFICATION_HUB_URL: http://notification-hub:4005
+      DB_HOST: postgres-orders
+      DB_PORT: 5432
+      DB_NAME: cafeteria_orders
+      DB_USER: postgres
+      DB_PASSWORD: postgres
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      postgres-orders:
         condition: service_healthy
     healthcheck:
       test:
@@ -285,7 +296,7 @@ services:
 
   # ========== FRONTEND CLIENTS ==========
 
-  student-ui:
+  ui:
     build:
       context: ./clients
       dockerfile: Dockerfile
@@ -294,6 +305,7 @@ services:
     depends_on:
       - order-gateway
       - notification-hub
+      - identity-provider
     networks:
       - cafeteria-net
     restart: unless-stopped

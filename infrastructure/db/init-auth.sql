@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (student_id, name, password_hash, role) VALUES
     ('student1', 'Farhan Ahmed', '$2a$10$aoUqgAb3oZe5sJybauEFROQAAM2I2pKEku2kmozoqWFTluuC.5aVa', 'student'),
     ('student2', 'Nadia Rahman', '$2a$10$aoUqgAb3oZe5sJybauEFROQAAM2I2pKEku2kmozoqWFTluuC.5aVa', 'student'),
-    ('admin1', 'System Admin', '$2a$10$aoUqgAb3oZe5sJybauEFROQAAM2I2pKEku2kmozoqWFTluuC.5aVa', 'admin')
+    ('admin1', 'System Admin', '$2a$10$aoUqgAb3oZe5sJybauEFROQAAM2I2pKEku2kmozoqWFTluuC.5aVa', 'admin'),
+    ('staff1', 'Kitchen Staff', '$2a$10$aoUqgAb3oZe5sJybauEFROQAAM2I2pKEku2kmozoqWFTluuC.5aVa', 'staff')
 ON CONFLICT (student_id) DO NOTHING;

@@ -10,8 +10,7 @@
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f0c29 0%, #1a1640 25%, #302b63 50%, #24243e 75%, #0f0c29 100%);
-  background-attachment: fixed;
+  background: #0f172a;
   min-height: 100vh;
   color: #e2e8f0;
   overflow-x: hidden;
@@ -19,103 +18,87 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.4); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.6); }
+::-webkit-scrollbar-track { background: #1e293b; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 /* Hide scrollbar for category tabs */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Glass styles */
-.glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+/* Card */
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  transition: border-color 0.2s ease;
 }
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  transition: all 0.3s ease;
-}
-.glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #38bdf8, #a78bfa, #d946ef);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Pulse animation */
-.status-pulse {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.6); }
+.card:hover {
+  border-color: #475569;
 }
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-.btn-primary::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1), transparent);
-  transform: translateX(-100%);
-  transition: transform 0.6s ease;
-}
-.btn-primary:hover::after {
-  transform: translateX(100%);
+  background: #2563eb;
+  transition: all 0.2s ease;
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, #0284c7, #7c3aed);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(14, 165, 233, 0.35);
+  background: #1d4ed8;
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: #dc2626;
+  transition: all 0.2s ease;
+}
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+.btn-green {
+  background: #16a34a;
+  transition: all 0.2s ease;
+}
+.btn-green:hover {
+  background: #15803d;
+}
+
+.btn-orange {
+  background: #d97706;
+  transition: all 0.2s ease;
+}
+.btn-orange:hover {
+  background: #b45309;
+}
+
+.btn-indigo {
+  background: #4f46e5;
+  transition: all 0.2s ease;
+}
+.btn-indigo:hover {
+  background: #4338ca;
 }
 
 /* Input */
 .input-field {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1e293b;
+  border: 1px solid #334155;
   color: white;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease;
 }
 .input-field:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15), 0 0 0 3px rgba(56, 189, 248, 0.08);
+  border-color: #3b82f6;
   outline: none;
-  background: rgba(255, 255, 255, 0.08);
 }
 .input-field::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: #64748b;
 }
 
-/* Food card interactions */
+/* Food card */
 .food-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
 }
 .food-card:hover {
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 30px rgba(139, 92, 246, 0.06);
-  border-color: rgba(139, 92, 246, 0.2);
+  border-color: #475569;
 }
 
 /* Line clamp */
@@ -128,6 +111,6 @@ body {
 
 /* Selection */
 ::selection {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(59, 130, 246, 0.3);
   color: #fff;
 }

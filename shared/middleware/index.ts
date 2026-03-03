@@ -60,6 +60,25 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
 }
 
 // ==========================================
+// Staff-only Middleware
+// ==========================================
+export function requireStaff(req: Request, res: Response, next: NextFunction): void {
+    const user = (req as any).user as JwtClaims;
+    if (!user || (user.role !== 'staff' && user.role !== 'admin')) {
+        const error: ApiError = {
+            error: {
+                code: 'FORBIDDEN',
+                message: 'Staff access required',
+                traceId: (req as any).requestId || 'unknown',
+            },
+        };
+        res.status(403).json(error);
+        return;
+    }
+    next();
+}
+
+// ==========================================
 // Request ID Middleware (X-Request-Id)
 // ==========================================
 export function requestIdMiddleware(req: Request, res: Response, next: NextFunction): void {

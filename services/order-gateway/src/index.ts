@@ -6,6 +6,7 @@ import amqplib from "amqplib";
 import axios from "axios";
 import { Pool } from "pg";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 const PORT = parseInt(process.env.PORT || "8080");
 const JWT_SECRET = process.env.JWT_SECRET || "devsprint-2026-secret-key";
@@ -135,6 +136,23 @@ function requireAdmin(
   next();
 }
 
+function requireStaffOrAdmin(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) {
+  const role = (req as any).user?.role;
+  if (role !== "staff" && role !== "admin")
+    return res.status(403).json({
+      error: {
+        code: "FORBIDDEN",
+        message: "Staff access required",
+        traceId: (req as any).requestId,
+      },
+    });
+  next();
+}
+
 app.get("/api/menu", async (req, res) => {
   const traceId = (req as any).requestId;
   try {
@@ -158,51 +176,41 @@ app.get("/api/menu", async (req, res) => {
   }
 });
 
-app.get(
-  "/api/orders/revenue",
-  authenticateJwt,
-  requireAdmin,
-  async (req, res) => {
-    const traceId = (req as any).requestId;
-    try {
-      const { rows } = await pool.query(
-        "SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'FAILED'",
-      );
-      res.json({ totalRevenue: parseFloat(rows[0].total_revenue) });
-    } catch (err: any) {
-      log("error", "Revenue fetch failed", { error: err.message });
-      res.status(500).json({
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Calculation failed",
-          traceId: (req as any)?.requestId || "",
-        },
-      });
-    }
-  },
-);
+app.get("/api/orders/revenue", async (req, res) => {
+  const traceId = (req as any).requestId;
+  try {
+    const { rows } = await pool.query(
+      "SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'FAILED'",
+    );
+    res.json({ totalRevenue: parseFloat(rows[0].total_revenue) });
+  } catch (err: any) {
+    log("error", "Revenue fetch failed", { error: err.message });
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Calculation failed",
+        traceId: (req as any)?.requestId || "",
+      },
+    });
+  }
+});
 
-app.get(
-  "/api/orders/orderCount",
-  authenticateJwt,
-  requireAdmin,
-  async (req, res) => {
-    const traceId = (req as any).requestId;
-    try {
-      const { rows } = await pool.query("SELECT COUNT(*) as count FROM orders");
-      res.json({ count: parseInt(rows[0].count, 10) });
-    } catch (err: any) {
-      log("error", "Order count fetch failed", { error: err.message });
-      res.status(500).json({
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Calculation failed",
-          traceId: (req as any)?.requestId || "",
-        },
-      });
-    }
-  },
-);
+app.get("/api/orders/orderCount", async (req, res) => {
+  const traceId = (req as any).requestId;
+  try {
+    const { rows } = await pool.query("SELECT COUNT(*) as count FROM orders");
+    res.json({ count: parseInt(rows[0].count, 10) });
+  } catch (err: any) {
+    log("error", "Order count fetch failed", { error: err.message });
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Calculation failed",
+        traceId: (req as any)?.requestId || "",
+      },
+    });
+  }
+});
 
 app.post("/api/orders", authenticateJwt, async (req, res) => {
   const traceId = (req as any).requestId;
@@ -236,6 +244,35 @@ app.post("/api/orders", authenticateJwt, async (req, res) => {
   const orderId = uuidv4();
 
   try {
+    // Check if any items are disabled before proceeding
+    for (const item of items) {
+      try {
+        const checkRes = await axios.get(
+          `${STOCK_SERVICE_URL}/stock/check-enabled/${item.itemId}`,
+          { headers: { "X-Request-Id": traceId }, timeout: 5000 },
+        );
+        if (!checkRes.data.isEnabled) {
+          return res.status(409).json({
+            error: {
+              code: "ITEM_DISABLED",
+              message: `${item.name || item.itemId} is currently disabled: ${checkRes.data.disabledReason || "Unavailable"}`,
+              traceId,
+            },
+          });
+        }
+      } catch (err: any) {
+        if (err.response?.status === 409 || err.response?.status === 404) {
+          return res.status(409).json({
+            error: {
+              code: err.response?.data?.error?.code || "ITEM_DISABLED",
+              message: err.response?.data?.error?.message || "Item unavailable",
+              traceId,
+            },
+          });
+        }
+      }
+    }
+
     for (const item of items) {
       try {
         const stock = await redis.get(`stock:${item.itemId}`);
@@ -488,6 +525,7 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
     "STOCK_VERIFIED",
     "IN_KITCHEN",
     "READY",
+    "DELIVERED",
     "FAILED",
     "PENDING_QUEUE",
   ];
@@ -497,16 +535,319 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
     });
 
   try {
-    await pool.query("UPDATE orders SET status = $1 WHERE order_id = $2", [
+    await pool.query("UPDATE orders SET status = $1, updated_at = NOW() WHERE order_id = $2", [
       status,
       req.params.orderId,
     ]);
+
+    // When status changes to READY, generate OTP
+    if (status === "READY") {
+      try {
+        const otpCode = crypto.randomInt(100000, 999999).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        await pool.query(
+          "INSERT INTO order_delivery (order_id, otp_code, otp_expires_at) VALUES ($1, $2, $3) ON CONFLICT (order_id) DO UPDATE SET otp_code = $2, otp_expires_at = $3, is_used = FALSE",
+          [req.params.orderId, otpCode, expiresAt],
+        );
+        log("info", "OTP generated for order", { orderId: req.params.orderId });
+      } catch (otpErr: any) {
+        log("error", "OTP generation failed", { error: otpErr.message, orderId: req.params.orderId });
+      }
+    }
+
     res.json({ orderId: req.params.orderId, status });
   } catch (err: any) {
     log("error", "Status update failed", { error: err.message, traceId });
     res.status(500).json({
       error: { code: "INTERNAL_ERROR", message: "Update failed", traceId },
     });
+  }
+});
+
+// ========== OTP RETRIEVAL (Student only - secure) ==========
+app.get("/api/orders/:orderId/otp", authenticateJwt, async (req, res) => {
+  const traceId = (req as any).requestId;
+  const user = (req as any).user;
+
+  try {
+    // Only allow the student who placed the order to see OTP
+    const { rows: orderRows } = await pool.query(
+      "SELECT student_id, status FROM orders WHERE order_id = $1",
+      [req.params.orderId],
+    );
+    if (!orderRows.length) return res.status(404).json({ error: { code: "NOT_FOUND", message: "Order not found", traceId } });
+    if (orderRows[0].student_id !== user.sub && user.role !== "admin")
+      return res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied", traceId } });
+    if (orderRows[0].status !== "READY")
+      return res.status(400).json({ error: { code: "NOT_READY", message: "Order is not ready yet", traceId } });
+
+    // Always generate a fresh 2-minute OTP on each request
+    const crypto = await import("crypto");
+    const otpCode = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
+
+    const { rows } = await pool.query(
+      `INSERT INTO order_delivery (order_id, otp_code, otp_expires_at, is_used)
+       VALUES ($1, $2, $3, FALSE)
+       ON CONFLICT (order_id) DO UPDATE SET otp_code = $2, otp_expires_at = $3, is_used = FALSE
+       RETURNING otp_code, otp_expires_at`,
+      [req.params.orderId, otpCode, expiresAt],
+    );
+    log("info", "OTP generated", { orderId: req.params.orderId, traceId });
+
+    res.json({
+      orderId: req.params.orderId,
+      otpCode: rows[0].otp_code,
+      expiresAt: rows[0].otp_expires_at,
+    });
+  } catch (err: any) {
+    log("error", "OTP fetch failed", { error: err.message, traceId });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Fetch failed", traceId } });
+  }
+});
+
+// ========== VERIFY & DELIVER (Staff endpoint) ==========
+app.post("/api/orders/:orderId/verify-delivery", authenticateJwt, requireStaffOrAdmin, async (req, res) => {
+  const traceId = (req as any).requestId;
+  const { otp } = req.body;
+  const orderId = req.params.orderId;
+
+  if (!otp) return res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "OTP is required", traceId } });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Get order
+    const { rows: orderRows } = await client.query(
+      "SELECT student_id, items, total_amount, status FROM orders WHERE order_id = $1 FOR UPDATE",
+      [orderId],
+    );
+    if (!orderRows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: { code: "NOT_FOUND", message: "Order not found", traceId } }); }
+    if (orderRows[0].status !== "READY") { await client.query("ROLLBACK"); return res.status(400).json({ error: { code: "NOT_READY", message: "Order is not in READY status", traceId } }); }
+
+    // Get OTP
+    const { rows: otpRows } = await client.query(
+      "SELECT otp_code, otp_expires_at, is_used FROM order_delivery WHERE order_id = $1 FOR UPDATE",
+      [orderId],
+    );
+    if (!otpRows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: { code: "NOT_FOUND", message: "No OTP found for this order", traceId } }); }
+
+    const delivery = otpRows[0];
+
+    // Validate OTP
+    if (delivery.is_used) { await client.query("ROLLBACK"); return res.status(400).json({ error: { code: "OTP_USED", message: "OTP already used", traceId } }); }
+    if (new Date(delivery.otp_expires_at) < new Date()) { await client.query("ROLLBACK"); return res.status(400).json({ error: { code: "OTP_EXPIRED", message: "OTP has expired", traceId } }); }
+    if (delivery.otp_code !== otp.toString()) { await client.query("ROLLBACK"); return res.status(401).json({ error: { code: "INVALID_OTP", message: "Invalid OTP", traceId } }); }
+
+    // Mark OTP as used
+    await client.query(
+      "UPDATE order_delivery SET is_used = TRUE, delivered_at = NOW() WHERE order_id = $1",
+      [orderId],
+    );
+
+    // Update order status to DELIVERED
+    await client.query(
+      "UPDATE orders SET status = 'DELIVERED', updated_at = NOW() WHERE order_id = $1",
+      [orderId],
+    );
+
+    // Insert revenue record
+    const revenueId = uuidv4();
+    await client.query(
+      "INSERT INTO revenue (id, order_id, student_id, amount) VALUES ($1, $2, $3, $4)",
+      [revenueId, orderId, orderRows[0].student_id, orderRows[0].total_amount],
+    );
+
+    await client.query("COMMIT");
+
+    // Notify student via notification hub (fire-and-forget)
+    try {
+      await axios.post(
+        `${NOTIFICATION_HUB_URL}/notify`,
+        {
+          orderId,
+          studentId: orderRows[0].student_id,
+          status: "DELIVERED",
+          timestamp: new Date().toISOString(),
+          message: "Your order has been delivered!",
+        },
+        { timeout: 3000 },
+      );
+    } catch { log("warn", "Delivery notification failed", { orderId }); }
+
+    log("info", "Order delivered", { orderId, studentId: orderRows[0].student_id, traceId });
+    res.json({
+      message: "Order successfully delivered",
+      orderId,
+      studentId: orderRows[0].student_id,
+      totalAmount: parseFloat(orderRows[0].total_amount),
+      deliveredAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    await client.query("ROLLBACK");
+    log("error", "Delivery verification failed", { error: err.message, traceId });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Verification failed", traceId } });
+  } finally {
+    client.release();
+  }
+});
+
+// ========== STAFF: Mark order as READY ==========
+app.post("/api/staff/orders/:orderId/ready", authenticateJwt, requireStaffOrAdmin, async (req, res) => {
+  const traceId = (req as any).requestId;
+  const orderId = req.params.orderId;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Get order and verify it's IN_KITCHEN
+    const { rows: orderRows } = await client.query(
+      "SELECT student_id, status FROM orders WHERE order_id = $1 FOR UPDATE",
+      [orderId],
+    );
+    if (!orderRows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Order not found", traceId } });
+    }
+    if (orderRows[0].status !== "IN_KITCHEN") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: { code: "INVALID_STATUS", message: `Order is ${orderRows[0].status}, not IN_KITCHEN`, traceId } });
+    }
+
+    // Update order status to READY
+    await client.query(
+      "UPDATE orders SET status = 'READY', updated_at = NOW() WHERE order_id = $1",
+      [orderId],
+    );
+
+    // Generate OTP for the order
+    const otpCode = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await client.query(
+      `INSERT INTO order_delivery (order_id, otp_code, otp_expires_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (order_id) DO UPDATE SET otp_code = $2, otp_expires_at = $3, is_used = FALSE`,
+      [orderId, otpCode, expiresAt],
+    );
+
+    await client.query("COMMIT");
+
+    // Notify student via notification hub
+    try {
+      await axios.post(
+        `${NOTIFICATION_HUB_URL}/notify`,
+        {
+          orderId,
+          studentId: orderRows[0].student_id,
+          status: "READY",
+          timestamp: new Date().toISOString(),
+          message: "Your order is ready for pickup!",
+          otp: otpCode,
+          otpExpiresAt: expiresAt.toISOString(),
+        },
+        { timeout: 3000 },
+      );
+    } catch {
+      log("warn", "Ready notification failed", { orderId });
+    }
+
+    log("info", "Staff marked order as READY", { orderId, staffId: (req as any).user.sub, traceId });
+    res.json({ message: "Order marked as ready", orderId, status: "READY" });
+  } catch (err: any) {
+    await client.query("ROLLBACK");
+    log("error", "Mark ready failed", { error: err.message, traceId });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to mark ready", traceId } });
+  } finally {
+    client.release();
+  }
+});
+
+// ========== STAFF: Get orders by status ==========
+app.get("/api/staff/orders", authenticateJwt, requireStaffOrAdmin, async (req, res) => {
+  const traceId = (req as any).requestId;
+  const status = req.query.status as string;
+  try {
+    let query = "SELECT o.order_id, o.student_id, o.items, o.total_amount, o.status, o.created_at, o.updated_at, od.delivered_at FROM orders o LEFT JOIN order_delivery od ON o.order_id = od.order_id";
+    const params: any[] = [];
+    if (status) {
+      query += " WHERE o.status = $1";
+      params.push(status);
+    }
+    query += " ORDER BY o.created_at DESC LIMIT 200";
+    const { rows } = await pool.query(query, params);
+    res.json(rows.map((r) => ({
+      orderId: r.order_id,
+      studentId: r.student_id,
+      items: typeof r.items === "string" ? JSON.parse(r.items) : r.items,
+      totalAmount: parseFloat(r.total_amount),
+      status: r.status,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      deliveredAt: r.delivered_at,
+    })));
+  } catch (err: any) {
+    log("error", "Staff orders fetch failed", { error: err.message, traceId });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Fetch failed", traceId } });
+  }
+});
+
+// ========== STAFF: Get delivered orders ==========
+app.get("/api/staff/delivered", authenticateJwt, requireStaffOrAdmin, async (req, res) => {
+  const traceId = (req as any).requestId;
+  try {
+    const { rows } = await pool.query(
+      `SELECT o.order_id, o.student_id, o.items, o.total_amount, o.status, o.created_at, od.delivered_at, r.amount as revenue_amount
+       FROM orders o
+       JOIN order_delivery od ON o.order_id = od.order_id
+       LEFT JOIN revenue r ON o.order_id = r.order_id
+       WHERE o.status = 'DELIVERED'
+       ORDER BY od.delivered_at DESC
+       LIMIT 200`,
+    );
+    res.json(rows.map((r) => ({
+      orderId: r.order_id,
+      studentId: r.student_id,
+      items: typeof r.items === "string" ? JSON.parse(r.items) : r.items,
+      totalAmount: parseFloat(r.total_amount),
+      status: r.status,
+      createdAt: r.created_at,
+      deliveredAt: r.delivered_at,
+      revenueAmount: r.revenue_amount ? parseFloat(r.revenue_amount) : parseFloat(r.total_amount),
+    })));
+  } catch (err: any) {
+    log("error", "Delivered fetch failed", { error: err.message, traceId });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Fetch failed", traceId } });
+  }
+});
+
+// ========== REVENUE ENDPOINTS ==========
+app.get("/api/revenue/total", authenticateJwt, async (req, res) => {
+  const traceId = (req as any).requestId;
+  try {
+    const { rows } = await pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM revenue");
+    res.json({ totalRevenue: parseFloat(rows[0].total) });
+  } catch (err: any) {
+    log("error", "Revenue total fetch failed", { error: err.message });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Fetch failed", traceId } });
+  }
+});
+
+app.get("/api/revenue/daily", authenticateJwt, async (req, res) => {
+  const traceId = (req as any).requestId;
+  try {
+    const { rows } = await pool.query(
+      `SELECT DATE(created_at) as date, SUM(amount) as total
+       FROM revenue
+       WHERE created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY DATE(created_at)
+       ORDER BY date DESC`,
+    );
+    res.json(rows.map((r) => ({ date: r.date, total: parseFloat(r.total) })));
+  } catch (err: any) {
+    log("error", "Daily revenue fetch failed", { error: err.message });
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Fetch failed", traceId } });
   }
 });
 
@@ -648,6 +989,35 @@ async function connectDB() {
     try {
       await pool.query("SELECT 1");
       log("info", "DB connected");
+
+      // Run migrations for new tables
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS order_delivery (
+            order_id VARCHAR(100) PRIMARY KEY REFERENCES orders(order_id),
+            otp_code TEXT NOT NULL,
+            otp_expires_at TIMESTAMPTZ NOT NULL,
+            is_used BOOLEAN DEFAULT FALSE,
+            delivered_at TIMESTAMPTZ
+          )
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_delivery_order ON order_delivery (order_id)`);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS revenue (
+            id VARCHAR(100) PRIMARY KEY,
+            order_id VARCHAR(100) REFERENCES orders(order_id),
+            student_id VARCHAR(50) NOT NULL,
+            amount NUMERIC NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          )
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_revenue_order ON revenue (order_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_revenue_created ON revenue (created_at)`);
+        log("info", "Order DB migrations applied");
+      } catch (migErr: any) {
+        log("warn", "Migration may already be applied", { error: migErr.message });
+      }
+
       return;
     } catch {
       log("warn", `Waiting for DB... (${i - 1} left)`);

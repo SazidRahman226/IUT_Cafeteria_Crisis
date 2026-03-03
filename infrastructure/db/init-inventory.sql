@@ -10,9 +10,13 @@ CREATE TABLE IF NOT EXISTS inventory (
     category VARCHAR(50) NOT NULL,
     image_url VARCHAR(500) DEFAULT '',
     available_qty INTEGER NOT NULL DEFAULT 0,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    disabled_reason TEXT,
     version INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_inventory_enabled ON inventory (is_enabled);
 
 CREATE TABLE IF NOT EXISTS idempotency_keys (
     idempotency_key VARCHAR(100) PRIMARY KEY,
