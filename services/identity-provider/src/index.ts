@@ -281,6 +281,24 @@ app.post("/chaos/kill", (req, res) => {
       process.exit(1);
     }
   }
+
+  try {
+    await pool.query(
+      `INSERT INTO users (student_id, name, password_hash, role) 
+       VALUES ($1, $2, $3, $4) 
+       ON CONFLICT (student_id) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
+      [
+        "staff1",
+        "Kitchen Staff",
+        "$2a$10$aoUqgAb3oZe5sJybauEFROQAAM2I2pKEku2kmozoqWFTluuC.5aVa",
+        "staff",
+      ],
+    );
+    log("info", "Seeded staff account");
+  } catch (err: any) {
+    log("error", "Failed to seed accounts", { error: err.message });
+  }
+
   app.listen(PORT, "0.0.0.0", () =>
     log("info", `Identity Provider running on port ${PORT}`),
   );

@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import { User, LoginRole } from "./types";
 import { AUTH_URL } from "./config/constants";
 import { apiFetch } from "./utils/api";
