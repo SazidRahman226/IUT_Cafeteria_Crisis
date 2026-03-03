@@ -21,10 +21,11 @@ interface LatencyPoint { time: string; gateway: number; identity: number; stock:
 // ==========================================
 // Config
 // ==========================================
-const BASE_HOST = import.meta.env.VITE_API_HOST || "localhost";
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || `http://${BASE_HOST}:8080`;
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || `http://${BASE_HOST}:4001`;
-const WS_URL = import.meta.env.VITE_WS_URL || `ws://${BASE_HOST}:4005/ws`;
+const BASE_HOST = window.location.hostname || "localhost";
+
+const GATEWAY_URL = import.meta.env.VITE_ORDER_API_URL || "http://localhost:8080";
+const AUTH_URL = import.meta.env.VITE_IDENTITY_API_URL || "http://localhost:4001";
+const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:4005/ws";
 
 const SERVICES = [
   { name: "Identity Provider", key: "identity-provider", port: 4001, url: import.meta.env.VITE_IDENTITY_API_URL, color: "#38bdf8" },
@@ -39,6 +40,7 @@ function getServiceUrl(port: number) {
   if (svc && svc.url) return svc.url;
   return `http://${BASE_HOST}:${port}`;
 }
+
 
 function formatUptime(s: number): string { if (s < 60) return `${s}s`; if (s < 3600) return `${Math.floor(s / 60)}m`; return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`; }
 function parsePrometheusMetrics(text: string, service: string): MetricsData {
