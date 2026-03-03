@@ -1,7 +1,9 @@
-import { BASE_HOST } from "../config/constants";
+import { BASE_HOST, SERVICES } from "../config/constants";
 import { MetricsData } from "../types";
 
 export function getServiceUrl(port: number) {
+  const svc = SERVICES.find((s) => s.port === port);
+  if (svc && svc.url) return svc.url;
   return `http://${BASE_HOST}:${port}`;
 }
 
