@@ -289,26 +289,8 @@ services:
     build:
       context: ./clients
       dockerfile: Dockerfile
-      args:
-        - VITE_API_HOST=localhost
-        - VITE_GATEWAY_URL=http://localhost:8080
-        - VITE_AUTH_URL=http://localhost:4001
-        - VITE_WS_URL=ws://localhost:4005/ws
-        - VITE_IDENTITY_URL=http://localhost:4001
-        - VITE_STOCK_URL=http://localhost:4002
-        - VITE_KITCHEN_URL=http://localhost:4003
-        - VITE_NOTIFICATION_URL=http://localhost:4005
     ports:
       - "3000:80"
-    environment:
-      - VITE_API_HOST=localhost
-      - VITE_GATEWAY_URL=http://localhost:8080
-      - VITE_AUTH_URL=http://localhost:4001
-      - VITE_WS_URL=ws://localhost:4005/ws
-      - VITE_IDENTITY_URL=http://localhost:4001
-      - VITE_STOCK_URL=http://localhost:4002
-      - VITE_KITCHEN_URL=http://localhost:4003
-      - VITE_NOTIFICATION_URL=http://localhost:4005
     depends_on:
       - order-gateway
       - notification-hub
