@@ -171,7 +171,7 @@ export function StudentDashboard({
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1 }}
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full text-xs"
+        className="fixed bottom-4 left-4 z-40 flex items-center gap-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full text-xs"
       >
         <div
           className={`w-2 h-2 rounded-full ${wsConnected ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]" : "bg-red-400 animate-pulse"}`}
@@ -236,6 +236,7 @@ function MenuScreen({
 }: any) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   const categories = useMemo(
     () =>
@@ -262,26 +263,26 @@ function MenuScreen({
     <motion.div {...slideRight} className="min-h-screen">
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="text-3xl"
+              className="text-2xl sm:text-3xl"
             >
               🍽️
             </motion.div>
             <div>
-              <h1 className="text-xl font-extrabold text-white tracking-tight">
+              <h1 className="text-base sm:text-xl font-extrabold text-white tracking-tight">
                 IUT Cafeteria
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-[10px] sm:text-xs text-slate-400">
                 Welcome,{" "}
                 <span className="text-blue-400 font-semibold">{user.name}</span>
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative hidden md:block">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">
                 🔍
@@ -298,24 +299,24 @@ function MenuScreen({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onGoOrders}
-              className="bg-slate-700 border border-slate-600 px-4 py-2.5 rounded-xl text-sm hover:bg-slate-600 transition-all font-medium flex items-center gap-2"
+              className="bg-slate-700 border border-slate-600 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm hover:bg-slate-600 transition-all font-medium flex items-center gap-1 sm:gap-2"
             >
-              📋 My Orders
+              📋 <span className="hidden sm:inline">My Orders</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onLogout}
-              className="bg-red-900/50 border border-red-700 px-4 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-900/70 transition-all"
+              className="bg-red-900/50 border border-red-700 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-red-400 hover:bg-red-900/70 transition-all"
             >
-              ↪ Logout
+              ↪ <span className="hidden sm:inline">Logout</span>
             </motion.button>
           </div>
         </div>
       </header>
 
       {/* Mobile Search */}
-      <div className="md:hidden px-6 pt-4">
+      <div className="md:hidden px-4 sm:px-6 pt-3 sm:pt-4">
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">
             🔍
@@ -330,7 +331,7 @@ function MenuScreen({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6 flex gap-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 flex gap-6">
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {/* Category Tabs */}
@@ -576,6 +577,148 @@ function MenuScreen({
           </motion.div>
         </div>
       </div>
+
+      {/* Mobile Floating Cart Button */}
+      {cart.length > 0 && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setMobileCartOpen(true)}
+          className="lg:hidden fixed bottom-6 right-6 z-50 bg-blue-600 text-white w-16 h-16 rounded-full shadow-xl shadow-blue-600/30 flex items-center justify-center text-2xl"
+        >
+          🛒
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+            {cart.reduce((s: number, c: CartItem) => s + c.quantity, 0)}
+          </span>
+        </motion.button>
+      )}
+
+      {/* Mobile Cart Drawer */}
+      <AnimatePresence>
+        {mobileCartOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="lg:hidden fixed inset-0 z-50 bg-black/60"
+            onClick={() => setMobileCartOpen(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 rounded-t-2xl max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-extrabold flex items-center gap-2 text-white">
+                    🛒 <span>Cart</span>
+                    <span className="ml-2 bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                      {cart.length}
+                    </span>
+                  </h3>
+                  <button
+                    onClick={() => setMobileCartOpen(false)}
+                    className="text-slate-400 hover:text-white text-2xl"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {cart.length === 0 ? (
+                  <div className="text-center py-10">
+                    <div className="text-4xl mb-3 opacity-40">🛒</div>
+                    <p className="text-slate-500 text-sm">Your cart is empty</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
+                      {cart.map((item: CartItem) => (
+                        <div
+                          key={item.itemId}
+                          className="flex items-center gap-3 bg-slate-800 rounded-xl p-3 border border-slate-700"
+                        >
+                          <span className="text-xl">{item.imageUrl}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-blue-400 font-bold">
+                              ৳{item.price * item.quantity}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => onUpdateQty(item.itemId, -1)}
+                              className="w-7 h-7 rounded bg-slate-700 text-sm flex items-center justify-center hover:bg-slate-600 transition"
+                            >
+                              −
+                            </button>
+                            <span className="text-sm font-bold w-6 text-center">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() => onUpdateQty(item.itemId, 1)}
+                              className="w-7 h-7 rounded bg-slate-700 text-sm flex items-center justify-center hover:bg-slate-600 transition"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => onRemoveFromCart(item.itemId)}
+                            className="text-red-400 hover:text-red-300 text-sm ml-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-t border-slate-700 pt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400 font-medium">Total</span>
+                        <span className="text-2xl font-extrabold text-white">
+                          ৳{cartTotal}
+                        </span>
+                      </div>
+                      {error && (
+                        <p className="text-red-400 text-xs bg-red-900/30 rounded-xl p-2">
+                          {error}
+                        </p>
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => { onPlaceOrder(); setMobileCartOpen(false); }}
+                        disabled={loading}
+                        className="btn-primary w-full py-3.5 rounded-xl text-white font-bold disabled:opacity-50 text-base"
+                      >
+                        {loading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <motion.span
+                              animate={{ rotate: 360 }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                            />
+                            Placing...
+                          </span>
+                        ) : (
+                          `Place Order • ৳${cartTotal}`
+                        )}
+                      </motion.button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -687,40 +830,40 @@ function OrdersScreen({ orders, onGoMenu, onLogout, onRefresh, token }: any) {
   return (
     <motion.div {...slideRight} className="min-h-screen">
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.button
               whileHover={{ x: -3 }}
               onClick={onGoMenu}
-              className="text-slate-400 hover:text-white transition font-medium"
+              className="text-slate-400 hover:text-white transition font-medium text-sm sm:text-base"
             >
-              ← Back to Menu
+              ← <span className="hidden sm:inline">Back to Menu</span><span className="sm:hidden">Back</span>
             </motion.button>
             <div className="w-px h-6 bg-slate-700" />
-            <h1 className="text-lg font-extrabold text-white">My Orders</h1>
+            <h1 className="text-base sm:text-lg font-extrabold text-white">My Orders</h1>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onRefresh}
-              className="bg-slate-700 border border-slate-600 px-4 py-2.5 rounded-xl text-sm hover:bg-slate-600 transition-all font-medium"
+              className="bg-slate-700 border border-slate-600 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm hover:bg-slate-600 transition-all font-medium"
             >
-              🔄 Refresh
+              🔄 <span className="hidden sm:inline">Refresh</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onLogout}
-              className="bg-red-900/50 border border-red-700 px-4 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-900/70 transition-all"
+              className="bg-red-900/50 border border-red-700 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-red-400 hover:bg-red-900/70 transition-all"
             >
-              ↪ Logout
+              ↪ <span className="hidden sm:inline">Logout</span>
             </motion.button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-4 sm:p-6">
         {orders.length === 0 ? (
           <motion.div {...fadeUp} className="text-center py-20 text-slate-500">
             <motion.div
@@ -808,7 +951,7 @@ function OrdersScreen({ orders, onGoMenu, onLogout, onRefresh, token }: any) {
                     );
                   })}
                 </div>
-                <div className="flex justify-between text-[10px] text-slate-500 mb-4">
+                <div className="flex justify-between text-[9px] sm:text-[10px] text-slate-500 mb-4">
                   <span>Pending</span>
                   <span>Verified</span>
                   <span>Kitchen</span>

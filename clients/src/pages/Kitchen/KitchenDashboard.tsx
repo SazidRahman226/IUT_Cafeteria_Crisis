@@ -59,20 +59,20 @@ export function KitchenDashboard({
       </AnimatePresence>
 
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="text-3xl"
+              className="text-2xl sm:text-3xl"
             >
               👨‍🍳
             </motion.div>
             <div>
-              <h1 className="text-xl font-extrabold text-white tracking-tight">
-                Kitchen Dashboard
+              <h1 className="text-base sm:text-xl font-extrabold text-white tracking-tight">
+                Kitchen
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-[10px] sm:text-xs text-slate-400">
                 Staff:{" "}
                 <span className="text-amber-400 font-semibold">
                   {user.name}
@@ -80,7 +80,7 @@ export function KitchenDashboard({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             {navItems.map((item) => (
               <motion.button
                 key={item.key}
@@ -101,14 +101,31 @@ export function KitchenDashboard({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onLogout}
-            className="bg-red-900/50 border border-red-700 px-4 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-900/70 transition-all"
+            className="bg-red-900/50 border border-red-700 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-red-400 hover:bg-red-900/70 transition-all"
           >
-            ↪ Logout
+            ↪ <span className="hidden sm:inline">Logout</span>
           </motion.button>
+        </div>
+        {/* Mobile Nav Tabs */}
+        <div className="md:hidden flex overflow-x-auto scrollbar-hide border-t border-slate-700">
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setPage(item.key)}
+              className={`flex-1 min-w-0 py-2.5 text-center text-xs font-semibold transition-all duration-300 ${
+                page === item.key
+                  ? "bg-amber-600/20 text-amber-400 border-b-2 border-amber-400"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <span className="block text-base">{item.emoji}</span>
+              <span className="block mt-0.5 truncate px-1">{item.label}</span>
+            </button>
+          ))}
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <AnimatePresence mode="wait">
           {page === "orders" && (
             <KitchenOrdersPage key="orders" token={token} />
@@ -266,14 +283,14 @@ function KitchenOrdersPage({ token }: { token: string }) {
           🔄 Refresh
         </motion.button>
       </div>
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
         {tabs.map((tab) => (
           <motion.button
             key={tab}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${activeTab === tab ? "bg-amber-600 text-white shadow-lg shadow-amber-600/25" : "bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700"}`}
+            className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 whitespace-nowrap ${activeTab === tab ? "bg-amber-600 text-white shadow-lg shadow-amber-600/25" : "bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700"}`}
           >
             {tabLabels[tab] || tab}
             <span className="ml-2 text-xs opacity-70">

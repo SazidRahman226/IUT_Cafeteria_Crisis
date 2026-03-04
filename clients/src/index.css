@@ -114,3 +114,13 @@ body {
   background: rgba(59, 130, 246, 0.3);
   color: #fff;
 }
+
+/* Mobile touch improvements */
+@media (max-width: 640px) {
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card {
+    border-radius: 10px;
+  }
+}

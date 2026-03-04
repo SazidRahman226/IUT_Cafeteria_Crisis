@@ -95,7 +95,7 @@ export function LoginScreen({
         initial={{ opacity: 0, y: 40, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.7, type: "spring" }}
-        className="card p-10 w-full max-w-md relative z-10"
+        className="card p-6 sm:p-10 w-full max-w-md relative z-10"
       >
         {/* Role Tabs */}
         <div className="flex gap-1 p-1 rounded-xl bg-slate-800 mb-8">
@@ -128,11 +128,11 @@ export function LoginScreen({
           <motion.div
             animate={{ rotate: [0, 5, -5, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="text-6xl mb-4 inline-block"
+            className="text-5xl sm:text-6xl mb-4 inline-block"
           >
             {cfg.icon}
           </motion.div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             {cfg.title}
           </h1>
           <p className="text-slate-400 text-sm mt-2">{cfg.subtitle}</p>

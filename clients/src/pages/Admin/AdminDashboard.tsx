@@ -270,19 +270,19 @@ export function AdminDashboard({
 
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-5 flex items-center justify-between">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-4"
+            className="flex items-center gap-2 sm:gap-4"
           >
-            <span className="text-3xl">👑</span>
-            <div className="w-px h-8 bg-slate-700" />
+            <span className="text-2xl sm:text-3xl">👑</span>
+            <div className="w-px h-6 sm:h-8 bg-slate-700 hidden sm:block" />
             <div>
-              <h1 className="text-2xl font-extrabold text-white">
+              <h1 className="text-base sm:text-2xl font-extrabold text-white">
                 Admin Dashboard
               </h1>
-              <p className="text-slate-500 text-xs mt-0.5">
+              <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 hidden sm:block">
                 DevSprint 2026 — IUT Cafeteria Crisis Control
               </p>
             </div>
@@ -290,48 +290,48 @@ export function AdminDashboard({
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-4 text-sm"
+            className="flex items-center gap-2 sm:gap-4 text-sm"
           >
-            <div className="bg-slate-700 border border-slate-600 px-4 py-2 rounded-xl flex items-center gap-2">
-              <span className="text-slate-400">Services:</span>
+            <div className="bg-slate-700 border border-slate-600 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-1 sm:gap-2">
+              <span className="text-slate-400 hidden sm:inline">Services:</span>
               <span
-                className={`font-bold ${healthyCount === 5 ? "text-green-400" : "text-yellow-400"}`}
+                className={`font-bold text-xs sm:text-sm ${healthyCount === 5 ? "text-green-400" : "text-yellow-400"}`}
               >
                 {healthyCount}/5
               </span>
             </div>
-            <span className="text-slate-400">👋 System Admin</span>
+            <span className="text-slate-400 hidden md:inline">👋 System Admin</span>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onLogout}
-              className="bg-red-900/50 border border-red-700 px-4 py-2.5 rounded-xl font-medium text-red-400 hover:bg-red-900/70 transition-all"
+              className="bg-red-900/50 border border-red-700 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-red-400 hover:bg-red-900/70 transition-all"
             >
-              ↪ Logout
+              ↪ <span className="hidden sm:inline">Logout</span>
             </motion.button>
           </motion.div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Summary Stats */}
         <motion.div
           variants={stagger}
           initial="initial"
           animate="animate"
-          className="grid grid-cols-5 gap-4"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4"
         >
           {statCards.map((stat) => (
             <motion.div
               key={stat.label}
               variants={scaleIn}
-              className={`card p-5 border-2 ${stat.borderColor} hover:scale-[1.03] transition-transform`}
+              className={`card p-3 sm:p-5 border-2 ${stat.borderColor} hover:scale-[1.03] transition-transform`}
             >
-              <div className="text-3xl mb-2">{stat.icon}</div>
-              <p className={`text-2xl font-extrabold ${stat.color}`}>
+              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{stat.icon}</div>
+              <p className={`text-lg sm:text-2xl font-extrabold ${stat.color}`}>
                 {stat.value}
               </p>
-              <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 mt-1">{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -344,7 +344,7 @@ export function AdminDashboard({
               Service Health Grid
             </h2>
           </div>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {services.map((svc) => {
               const chaosInfo = killedServices[svc.key];
               const wasKilled = chaosInfo && !chaosInfo.recovered;
@@ -452,7 +452,7 @@ export function AdminDashboard({
         </motion.div>
 
         {/* Charts */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <motion.div {...fadeUp} className="card p-5">
             <h3 className="font-bold mb-4 text-white">
               📈 Service Latency (ms)
@@ -554,7 +554,7 @@ export function AdminDashboard({
           <p className="text-xs text-slate-500 mb-5">
             Kill a service to simulate a crash. Watch recovery in real-time.
           </p>
-          <div className="grid grid-cols-5 gap-3 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
             {services.map((svc) => {
               const isKilled =
                 killedServices[svc.key] &&
@@ -567,7 +567,7 @@ export function AdminDashboard({
                   whileTap={{ scale: 0.97 }}
                   onClick={() => killService(svc)}
                   disabled={!svc.isUp || !!isKilled}
-                  className={`relative px-4 py-3.5 rounded-xl text-sm font-bold transition-all border-2 ${
+                  className={`relative px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all border-2 ${
                     isKilled
                       ? "bg-red-900/40 border-red-700 text-red-400 cursor-not-allowed"
                       : svc.isUp
