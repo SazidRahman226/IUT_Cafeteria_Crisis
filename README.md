@@ -188,6 +188,9 @@ node stress-chart.js gateway 5000 50
 # Run both Stock and Gateway tests back-to-back and compare
 node stress-chart.js both
 ```
+**Test Screenshot**
+
+![Test Screenshot](./public/stress-test1.png)
 
 ---
 
