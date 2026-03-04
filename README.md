@@ -32,6 +32,7 @@ docker compose up --build
 | Notification Hub | [http://localhost:4005](http://localhost:4005) |
 | RabbitMQ Management | [http://localhost:15672](http://localhost:15672) (guest/guest) |
 | Prometheus | [http://localhost:9090](http://localhost:9090) |
+| Jaeger UI (Tracing) | [http://localhost:16686](http://localhost:16686) |
 
 ### Demo Credentials
 
@@ -201,6 +202,7 @@ Team codeKomAiBeshi addressed every challenge in the DevSprint 2026 Problem Stat
 | **Caching** | Redis for stock level caching (30s TTL) |
 | **Real-time** | WebSocket push for order status updates |
 | **Observability** | Prometheus metrics + structured JSON logging + request ID tracing |
+| **Distributed Tracing** | Jaeger + OpenTelemetry auto-instrumentation across all services |
 | **Chaos Engineering** | `/chaos/kill` endpoint on every service (admin-only) |
 | **Resilience** | Auto-restart, PENDING_QUEUE retry, connection retry with backoff |
 
@@ -241,6 +243,44 @@ kubectl apply -f k8s/services/
 
 ---
 
+## 🔍 Distributed Tracing with Jaeger
+
+All services are instrumented with [OpenTelemetry](https://opentelemetry.io/) and export traces to [Jaeger](https://www.jaegertracing.io/). This lets you visually follow a request across every microservice.
+
+### How to use Jaeger
+
+1. **Start the system** — `docker compose up --build`
+2. **Open Jaeger UI** — [http://localhost:16686](http://localhost:16686)
+3. **Make some requests** — place an order, log in, check stock, etc.
+4. **View traces in Jaeger:**
+   - Select a service from the **Service** dropdown (e.g. `order-gateway`)
+   - Click **Find Traces**
+   - Click any trace to see the full request flow
+
+### What you can see
+
+- **End-to-end request path**: e.g. `order-gateway → stock-service → PostgreSQL → Redis → RabbitMQ → notification-hub`
+- **Latency breakdown**: how long each service and database call took
+- **Error detection**: failed spans shown in red
+- **Cross-service correlation**: one trace shows all services involved in a single user action
+
+### Example: Place Order trace flow
+
+```
+order-gateway (POST /api/orders)
+  ├── stock-service (GET /stock/check-enabled/:id)
+  ├── stock-service (POST /stock/reserve)
+  ├── stock-service (GET /stock/:id)
+  ├── PostgreSQL INSERT (orders table)
+  ├── RabbitMQ publish (kitchen_orders)
+  └── notification-hub (POST /notify)
+      └── kitchen-service (consumes from RabbitMQ)
+          ├── notification-hub (POST /notify → IN_KITCHEN)
+          └── order-gateway (PATCH /api/orders/:id/status)
+```
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Backend:** Node.js + TypeScript + Express
@@ -249,6 +289,7 @@ kubectl apply -f k8s/services/
 - **Message Queue:** RabbitMQ 3.12
 - **Frontend:** React 18 + Vite + Tailwind CSS + Framer Motion + Recharts
 - **Metrics:** Prometheus
+- **Distributed Tracing:** Jaeger + OpenTelemetry
 - **CI/CD:** GitHub Actions
 - **Containerization:** Docker + Docker Compose
 - **Orchestration:** Kubernetes (manifests provided)

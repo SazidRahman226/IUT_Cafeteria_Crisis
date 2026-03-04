@@ -46,6 +46,10 @@ spec:
                   key: secret
             - name: JWT_EXPIRY
               value: "24h"
+            - name: OTEL_SERVICE_NAME
+              value: "identity-provider"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4318"
           livenessProbe:
             httpGet:
               path: /health
@@ -109,6 +113,10 @@ spec:
             # ADDED: Stock Service must publish to the Kitchen Queue
             - name: RABBITMQ_URL
               value: "amqp://guest:guest@rabbitmq:5672"
+            - name: OTEL_SERVICE_NAME
+              value: "stock-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4318"
           livenessProbe:
             httpGet:
               path: /health
@@ -165,6 +173,10 @@ spec:
             # ADDED: Needs to trigger updates to the Notification Hub
             - name: NOTIFICATION_HUB_URL
               value: "http://notification-hub:4005"
+            - name: OTEL_SERVICE_NAME
+              value: "kitchen-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4318"
           livenessProbe:
             httpGet:
               path: /health
@@ -217,6 +229,10 @@ spec:
                 secretKeyRef:
                   name: jwt-secret
                   key: secret
+            - name: OTEL_SERVICE_NAME
+              value: "notification-hub"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4318"
           livenessProbe:
             httpGet:
               path: /health

@@ -14,7 +14,12 @@
         "express-rate-limit": "^7.1.5",
         "jsonwebtoken": "^9.0.2",
         "pg": "^8.11.3",
-        "uuid": "^9.0.0"
+        "uuid": "^9.0.0",
+        "@opentelemetry/sdk-node": "^0.57.0",
+        "@opentelemetry/auto-instrumentations-node": "^0.54.0",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.57.0",
+        "@opentelemetry/resources": "^1.30.0",
+        "@opentelemetry/semantic-conventions": "^1.28.0"
     },
     "devDependencies": {
         "@types/amqplib": "^0.10.8",

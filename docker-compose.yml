@@ -99,6 +99,17 @@ services:
     networks:
       - cafeteria-net
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP receiver
+    networks:
+      - cafeteria-net
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:latest
     ports:
@@ -132,9 +143,13 @@ services:
       DB_PASSWORD: postgres
       JWT_SECRET: devsprint-2026-secret-key
       JWT_EXPIRY: 24h
+      OTEL_SERVICE_NAME: identity-provider
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     depends_on:
       postgres-auth:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -166,11 +181,15 @@ services:
       DB_PASSWORD: postgres
       REDIS_URL: redis://redis:6379
       JWT_SECRET: devsprint-2026-secret-key
+      OTEL_SERVICE_NAME: stock-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     depends_on:
       postgres-inventory:
         condition: service_healthy
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -205,6 +224,8 @@ services:
       STOCK_SERVICE_URL: http://stock-service:4002
       NOTIFICATION_HUB_URL: http://notification-hub:4005
       JWT_SECRET: devsprint-2026-secret-key
+      OTEL_SERVICE_NAME: order-gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     depends_on:
       postgres-orders:
         condition: service_healthy
@@ -215,6 +236,8 @@ services:
       stock-service:
         condition: service_started
       notification-hub:
+        condition: service_started
+      jaeger:
         condition: service_started
     healthcheck:
       test:
@@ -248,11 +271,15 @@ services:
       DB_NAME: cafeteria_orders
       DB_USER: postgres
       DB_PASSWORD: postgres
+      OTEL_SERVICE_NAME: kitchen-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     depends_on:
       rabbitmq:
         condition: service_healthy
       postgres-orders:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -278,6 +305,11 @@ services:
     environment:
       PORT: 4005
       JWT_SECRET: devsprint-2026-secret-key
+      OTEL_SERVICE_NAME: notification-hub
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    depends_on:
+      jaeger:
+        condition: service_started
     healthcheck:
       test:
         [
