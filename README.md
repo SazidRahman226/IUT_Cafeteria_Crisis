@@ -148,6 +148,47 @@ curl -X POST http://localhost:8080/api/orders \
   -d '{"items":[{"itemId":"item-001","name":"Chicken Biryani","quantity":1,"price":120}]}'
 ```
 
+### 7. Load Testing with Autocannon (Robustness Test)
+
+Simulate 5,000 requests to judge the robustness and latency of the system under high load:
+
+```bash
+# Run 5000 requests with 100 concurrent connections against Order Gateway
+npx autocannon -a 5000 -c 100 http://localhost:8080/health
+
+# Test Identity Provider Check
+npx autocannon -a 5000 -c 100 http://localhost:4001/health
+
+# Test Kitchen Service Check
+npx autocannon -a 5000 -c 100 http://localhost:4003/health
+```
+
+### 8. Advanced Stress Testing & Charting
+
+For a granular breakdown and visualization of stress tests, you can use the custom `stress-chart.js` script. It generates an interactive HTML report (`stress-report.html`) with performance metrics.
+
+**Usage Examples:**
+
+```bash
+# Run default test (Stock Service: GET /stock)
+node stress-chart.js
+
+# Explicitly test Stock Service
+node stress-chart.js stock
+
+# Explicitly test Order Gateway (GET /api/menu)
+node stress-chart.js gateway
+
+# Custom total requests & concurrency (e.g., 5000 reqs, 50 concurrent)
+node stress-chart.js stock 5000 50
+
+# Test Order Gateway (Auto-fetches Admin JWT Token internal to script)
+node stress-chart.js gateway 5000 50
+
+# Run both Stock and Gateway tests back-to-back and compare
+node stress-chart.js both
+```
+
 ---
 
 ## 📁 Repository Structure

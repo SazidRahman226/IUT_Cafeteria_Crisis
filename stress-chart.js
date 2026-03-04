@@ -9,7 +9,7 @@
  *   node stress-chart.js stock                    → stock GET /stock
  *   node stress-chart.js gateway                  → gateway GET /api/menu
  *   node stress-chart.js stock   5000 50          → custom total/concurrency
- *   node stress-chart.js gateway 5000 50 <jwt>    → gateway with auth
+ *   node stress-chart.js gateway 5000 50          → gateway (auto-fetches admin auth)
  *   node stress-chart.js both                     → run stock + gateway, compare
  *
  * Output: stress-report.html  (opens automatically in browser if possible)
@@ -464,16 +464,44 @@ ${histScripts}
 </html>`;
 }
 
+// ── Auth Helper ───────────────────────────────────────────────────────────────
+function getAdminToken() {
+  return new Promise((resolve) => {
+    console.log("🔑 Auto-fetching Admin JWT Token for Gateway test...");
+    const payload = JSON.stringify({ studentId: "admin1", password: "password123" });
+    const req = http.request(
+      { host: "localhost", port: 4001, path: "/auth/login", method: "POST", headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) } },
+      (res) => {
+        let body = "";
+        res.on("data", (d) => body += d);
+        res.on("end", () => {
+          try { resolve(JSON.parse(body).accessToken || null); }
+          catch (e) { resolve(null); }
+        });
+      }
+    );
+    req.on("error", () => resolve(null));
+    req.write(payload);
+    req.end();
+  });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 (async () => {
   let results = [];
+  let jwtToUse = JWT_TOKEN;
+
+  if (!jwtToUse && (TARGET === "gateway" || TARGET === "both" || TARGET === "gateway-health")) {
+    jwtToUse = await getAdminToken();
+    if (!jwtToUse) console.log("⚠️ Failed to auto-fetch Admin Token! Gateway requests might fail (401).");
+  }
 
   if (TARGET === "both") {
-    results.push(await runTest("stock",   JWT_TOKEN));
-    results.push(await runTest("gateway", JWT_TOKEN));
+    results.push(await runTest("stock",   jwtToUse));
+    results.push(await runTest("gateway", jwtToUse));
   } else {
     const key = TARGETS[TARGET] ? TARGET : "stock";
-    results.push(await runTest(key, JWT_TOKEN));
+    results.push(await runTest(key, jwtToUse));
   }
 
   // Print quick summary to console
