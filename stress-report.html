@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stress Test Report — IUT Cafeteria Crisis</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0f1e;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #34d399, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    header p { color: #64748b; font-size: 0.9rem; }
+    .badge {
+      display: inline-block;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 99px;
+      padding: 4px 14px;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin: 4px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+    .stat-grid .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 16px;
+    }
+    .stat {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .stat .val {
+      display: block;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+    .stat .key {
+      font-size: 0.72rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .donut-card { display: flex; flex-direction: column; align-items: center; }
+    .donut-card canvas { max-width: 320px; }
+    canvas { max-width: 100%; }
+    @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🚀 Stress Test Report</h1>
+    <p>IUT Cafeteria Crisis — DevSprint 2026</p>
+    <br>
+    <span class="badge">📅 04/03/2026, 7:27:09 pm</span>
+    <span class="badge">🔢 5,000 requests</span>
+    <span class="badge">⚡ 50 concurrent</span>
+    <span class="badge" style="color:#34d399">Stock Service — GET /stock</span>
+  </header>
+
+  
+    <div class="card stat-grid">
+      <div class="card-title">Stock Service — GET /stock</div>
+      <div class="stats">
+        <div class="stat"><span class="val">2,583</span><span class="key">req/s</span></div>
+        <div class="stat"><span class="val">1.94s</span><span class="key">duration</span></div>
+        <div class="stat"><span class="val" style="color:#34d399">5,000</span><span class="key">success</span></div>
+        <div class="stat"><span class="val" style="color:#34d399">0</span><span class="key">errors</span></div>
+        <div class="stat"><span class="val">19.1ms</span><span class="key">avg lat</span></div>
+        <div class="stat"><span class="val">16ms</span><span class="key">p50</span></div>
+        <div class="stat"><span class="val">26ms</span><span class="key">p90</span></div>
+        <div class="stat"><span class="val">69ms</span><span class="key">p99</span></div>
+        <div class="stat"><span class="val">2ms</span><span class="key">min</span></div>
+        <div class="stat"><span class="val">237ms</span><span class="key">max</span></div>
+      </div>
+    </div>
+
+  <div class="card">
+    <div class="card-title">⏱ Latency Over Time (ms)</div>
+    <canvas id="timeline" height="120"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ Throughput Over Time (req/s)</div>
+    <canvas id="rps" height="120"></canvas>
+  </div>
+
+  
+    <div class="card">
+      <div class="card-title">Latency Histogram — Stock Service — GET /stock</div>
+      <canvas id="hist0" height="140"></canvas>
+    </div>
+
+  <div class="grid-2">
+    
+    <div class="card donut-card">
+      <div class="card-title">Status Codes — Stock Service — GET /stock</div>
+      <canvas id="status0" height="160"></canvas>
+    </div>
+    <script>
+    new Chart(document.getElementById("status0"), {
+      type: "doughnut",
+      data: {
+        labels: ["HTTP 200"],
+        datasets: [{ data: [5000], backgroundColor: ["#34d399"], borderWidth: 2, borderColor: "#0f172a" }]
+      },
+      options: {
+        responsive: true,
+        cutout: "65%",
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#94a3b8", padding: 12 } },
+          tooltip: { callbacks: { label: (ctx) => ctx.label + ": " + ctx.parsed.toLocaleString() } }
+        }
+      }
+    });
+    </script>
+  </div>
+</div>
+
+<script>
+Chart.defaults.color = "#94a3b8";
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+
+// ── Timeline Chart ────────────────────────────────────────────────────────────
+new Chart(document.getElementById("timeline"), {
+  type: "line",
+  data: { datasets: [{"label":"Stock Service — GET /stock (avg ms)","data":[{"x":0,"y":111.3},{"x":50,"y":29.3},{"x":100,"y":65},{"x":150,"y":35.1},{"x":200,"y":23.6},{"x":250,"y":20.9},{"x":300,"y":20.8},{"x":350,"y":23.4},{"x":400,"y":24.1},{"x":450,"y":24.9},{"x":500,"y":29.2},{"x":550,"y":20.5},{"x":600,"y":24},{"x":650,"y":24.3},{"x":700,"y":23.3},{"x":750,"y":19.7},{"x":800,"y":21.1},{"x":850,"y":20.7},{"x":900,"y":25.9},{"x":950,"y":21.3},{"x":1000,"y":17.5},{"x":1050,"y":14.8},{"x":1100,"y":14.3},{"x":1150,"y":13.3},{"x":1200,"y":17.2},{"x":1250,"y":14.6},{"x":1300,"y":13.9},{"x":1350,"y":15.4},{"x":1400,"y":18.4},{"x":1450,"y":18.3},{"x":1500,"y":15.5},{"x":1550,"y":13.8},{"x":1600,"y":15.4},{"x":1650,"y":13.8},{"x":1700,"y":13.9},{"x":1750,"y":13.7},{"x":1800,"y":13.4},{"x":1850,"y":13.5},{"x":1900,"y":12.9}],"borderColor":"#34d399","backgroundColor":"#34d39922","fill":true,"tension":0.3,"pointRadius":2}] },
+  options: {
+    responsive: true,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { labels: { color: "#94a3b8" } },
+      tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ": " + ctx.parsed.y + "ms" } }
+    },
+    scales: {
+      x: {
+        type: "linear",
+        title: { display: true, text: "Time (ms into test)", color: "#64748b" },
+        ticks: { color: "#94a3b8" },
+        grid: { color: "#1e293b" }
+      },
+      y: {
+        title: { display: true, text: "Avg Latency (ms)", color: "#64748b" },
+        ticks: { color: "#94a3b8" },
+        grid: { color: "#1e293b" }
+      }
+    }
+  }
+});
+
+// ── RPS Chart ─────────────────────────────────────────────────────────────────
+new Chart(document.getElementById("rps"), {
+  type: "line",
+  data: { datasets: [{"label":"Stock Service — GET /stock (req/s)","data":[{"x":0,"y":1080},{"x":50,"y":660},{"x":100,"y":440},{"x":150,"y":1040},{"x":200,"y":1660},{"x":250,"y":2380},{"x":300,"y":2520},{"x":350,"y":2140},{"x":400,"y":2040},{"x":450,"y":2140},{"x":500,"y":1700},{"x":550,"y":2320},{"x":600,"y":2100},{"x":650,"y":1960},{"x":700,"y":2360},{"x":750,"y":2240},{"x":800,"y":2480},{"x":850,"y":2300},{"x":900,"y":2160},{"x":950,"y":2080},{"x":1000,"y":2780},{"x":1050,"y":3480},{"x":1100,"y":3300},{"x":1150,"y":3780},{"x":1200,"y":2940},{"x":1250,"y":3540},{"x":1300,"y":3420},{"x":1350,"y":3300},{"x":1400,"y":2920},{"x":1450,"y":2540},{"x":1500,"y":3160},{"x":1550,"y":3720},{"x":1600,"y":3180},{"x":1650,"y":3600},{"x":1700,"y":3600},{"x":1750,"y":3660},{"x":1800,"y":3740},{"x":1850,"y":3700},{"x":1900,"y":1840}],"borderColor":"#34d399","backgroundColor":"#34d39933","fill":true,"tension":0.3,"pointRadius":2}] },
+  options: {
+    responsive: true,
+    interaction: { mode: "index", intersect: false },
+    plugins: { legend: { labels: { color: "#94a3b8" } } },
+    scales: {
+      x: {
+        type: "linear",
+        title: { display: true, text: "Time (ms into test)", color: "#64748b" },
+        ticks: { color: "#94a3b8" },
+        grid: { color: "#1e293b" }
+      },
+      y: {
+        title: { display: true, text: "Requests / second", color: "#64748b" },
+        ticks: { color: "#94a3b8" },
+        grid: { color: "#1e293b" }
+      }
+    }
+  }
+});
+
+// ── Histogram Charts ──────────────────────────────────────────────────────────
+
+    new Chart(document.getElementById("hist0"), {
+      type: "bar",
+      data: {
+        labels: ["0ms","12ms","24ms","36ms","48ms","60ms","72ms","84ms","96ms","108ms","120ms","132ms","144ms","156ms","192ms","216ms","228ms"],
+        datasets: [{
+          label: "Requests",
+          data: [194,3956,748,30,8,21,10,5,2,2,2,9,3,3,1,1,5],
+          backgroundColor: "#34d39999",
+          borderColor: "#34d399",
+          borderWidth: 1,
+          borderRadius: 3,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#94a3b8", maxTicksLimit: 12 }, grid: { color: "#1e293b" } },
+          y: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" } }
+        }
+      }
+    });
+</script>
+</body>
+</html>
